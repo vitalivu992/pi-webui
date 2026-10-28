@@ -37,7 +37,7 @@ describe("neighbourId", () => {
 
 describe("terminalTheme", () => {
   it("has light and dark palettes", () => {
-    expect(terminalTheme("dark").background).toBe("#0d1117")
+    expect(terminalTheme("dark").background).toBe("#1b1916")
     expect(terminalTheme("nope")).toBe(terminalTheme("light"))
   })
 })

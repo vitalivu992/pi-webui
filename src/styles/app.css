@@ -1,55 +1,217 @@
-/* pi WebUI: three-column conversation browser on Primer's colour
-   tokens (they follow data-color-mode on <html>). App-only colours are the
-   --pw-* variables below, with dark values in the [data-color-mode="dark"] block. */
+/* pi WebUI: three-column conversation browser styled after pi.dev — a warm
+   paper canvas with a faint page grid, serif prose and italic headings, mono
+   controls and labels, hairline borders. The palette lives in the --pw-*
+   variables below (dark values in the [data-color-mode="dark"] block); the
+   Primer token names the rules below read are defined here too, mapped onto
+   that palette. */
 
+/* Higher specificity than Primer's own token blocks
+   ([data-color-mode=light][data-light-theme=light]) so these win. */
 :root {
   --pw-projects-w: 272px;
   --pw-rail-w: 56px;
   --pw-convs-w: 360px;
-  --pw-radius: 10px;
-  --pw-user-bg: #ddf4ff;
-  --pw-user-border: #b6e3ff;
-  --pw-agent-bg: var(--bgColor-default, #fff);
-  --pw-claude: #d97757;
-  --pw-active-bg: #eef4ff;
-  --pw-active-bar: #0969da;
-  --pw-code-bg: #f6f8fa;
-  --pw-add-bg: #e6ffec;
-  --pw-del-bg: #ffebe9;
-  --pw-hl-keyword: #cf222e;
-  --pw-hl-title: #8250df;
-  --pw-hl-attr: #0550ae;
-  --pw-hl-string: #0a3069;
-  --pw-hl-builtin: #953800;
-  --pw-hl-comment: #6e7781;
-  --pw-hl-name: #116329;
-  --pw-hl-section: #0550ae;
+  --pw-radius: 8px;
+
+  /* Fonts are theme-independent: both modes use the same faces. */
+  --pw-serif: "Plantin MT Pro", "Plantin MT Std", Plantin, Georgia, "Times New Roman", serif;
+  --pw-mono: "Commit Mono", "Departure Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 
-[data-color-mode="dark"] {
-  --pw-user-bg: #0c2d6b;
-  --pw-user-border: #1f4e99;
-  --pw-agent-bg: #161b22;
-  --pw-active-bg: #1c2b44;
-  --pw-active-bar: #4493f8;
-  --pw-code-bg: #0d1117;
-  --pw-add-bg: rgba(46, 160, 67, 0.15);
-  --pw-del-bg: rgba(248, 81, 73, 0.15);
-  --pw-hl-keyword: #ff7b72;
-  --pw-hl-title: #d2a8ff;
-  --pw-hl-attr: #79c0ff;
-  --pw-hl-string: #a5d6ff;
-  --pw-hl-builtin: #ffa657;
-  --pw-hl-comment: #8b949e;
-  --pw-hl-name: #7ee787;
-  --pw-hl-section: #1f6feb;
-  /* markdown-it-github-alerts */
-  --color-note: #2f81f7;
-  --color-tip: #3fb950;
-  --color-warning: #d29922;
-  --color-severe: #db6d28;
-  --color-caution: #f85149;
-  --color-important: #a371f7;
+:root:not([data-color-mode="dark"]) {
+  /* pi.dev: warm paper, evening-blue ink, tidal-blue accent, driftwood muted */
+  --pw-paper: #ebe7e4;
+  --pw-panel: #f3f2f0;
+  --pw-panel-soft: #eef1f3;
+  --pw-inset: #e7e3df;
+  --pw-ink: #252f3d;
+  --pw-copy: #384251;
+  --pw-muted: #5c5752;
+  --pw-tidal: #4b607c;
+  --pw-blue: #6a9fcc;
+  --pw-terracotta: #844f3b;
+  --pw-rust: #b86b52;
+  --pw-danger: #a5483a;
+  --pw-success: #47764d;
+  --pw-attention: #96690f;
+  --pw-line: #d5cfc9;
+  --pw-line-muted: #ded9d3;
+
+  /* pi.dev/models controls: sharp corners, mono, warm hairlines */
+  --pw-control-bg: #eef1f3;
+  --pw-control-border: rgba(139, 132, 125, 0.35);
+  --pw-control-focus-border: rgba(75, 96, 124, 0.45);
+  --pw-control-focus-ring: rgba(75, 96, 124, 0.5);
+  --pw-btn-bg: rgba(37, 47, 61, 0.03);
+  --pw-btn-hover-bg: rgba(37, 47, 61, 0.06);
+
+  --pw-user-bg: rgba(106, 159, 204, 0.13);
+  --pw-user-border: rgba(75, 96, 124, 0.32);
+  --pw-agent-bg: transparent;
+  --pw-claude: var(--pw-terracotta);
+  --pw-active-bg: rgba(75, 96, 124, 0.09);
+  --pw-active-bar: var(--pw-tidal);
+  --pw-code-bg: rgba(75, 96, 124, 0.07);
+  --pw-add-bg: rgba(163, 164, 115, 0.22);
+  --pw-del-bg: rgba(165, 72, 58, 0.12);
+  --pw-hl-keyword: #9c3f2e;
+  --pw-hl-title: #7d5f9e;
+  --pw-hl-attr: #4b607c;
+  --pw-hl-string: #38654a;
+  --pw-hl-builtin: #96690f;
+  --pw-hl-comment: #8b847d;
+  --pw-hl-name: #47764d;
+  --pw-hl-section: #4b607c;
+
+  /* Primer token names → the palette above */
+  --bgColor-default: var(--pw-panel);
+  --bgColor-muted: var(--pw-paper);
+  --bgColor-inset: var(--pw-inset);
+  --bgColor-neutral-muted: rgba(37, 47, 61, 0.06);
+  --bgColor-neutral-emphasis: #5c5752;
+  --bgColor-accent-muted: rgba(75, 96, 124, 0.13);
+  --bgColor-danger-muted: rgba(165, 72, 58, 0.1);
+  --fgColor-default: var(--pw-ink);
+  --fgColor-muted: var(--pw-muted);
+  --fgColor-accent: var(--pw-tidal);
+  --fgColor-success: var(--pw-success);
+  --fgColor-danger: var(--pw-danger);
+  --fgColor-attention: var(--pw-attention);
+  --fgColor-onEmphasis: var(--pw-panel);
+  --borderColor-default: var(--pw-line);
+  --borderColor-muted: var(--pw-line-muted);
+  --borderColor-accent-muted: rgba(75, 96, 124, 0.38);
+  --borderColor-accent-emphasis: var(--pw-tidal);
+  --borderColor-danger-muted: rgba(165, 72, 58, 0.38);
+  --focus-outlineColor: rgba(75, 96, 124, 0.5);
+  --selection-bgColor: rgba(75, 96, 124, 0.22);
+  --overlay-bgColor: var(--pw-panel);
+  --overlay-backdrop-bgColor: rgba(37, 47, 61, 0.35);
+  --button-primary-bgColor-rest: var(--pw-tidal);
+  --button-primary-bgColor-hover: #3d5069;
+  --button-primary-fgColor-rest: var(--pw-panel);
+  --button-danger-bgColor-hover: var(--pw-danger);
+  --button-danger-fgColor-hover: var(--pw-panel);
+  --counter-borderColor: transparent;
+  --underlineNav-borderColor-active: var(--pw-rust);
+  --fontStack-sansSerif: var(--pw-serif);
+  --shadow-floating-small: 0 0 0 1px rgba(92, 87, 82, 0.18), 0 6px 18px rgba(120, 98, 81, 0.14);
+  --shadow-floating-large: 0 8px 24px rgba(120, 98, 81, 0.28);
+  --color-note: var(--pw-tidal);
+  --color-tip: var(--pw-success);
+  --color-warning: var(--pw-attention);
+  --color-severe: var(--pw-rust);
+  --color-caution: var(--pw-danger);
+  --color-important: #7d5f9e;
+  /* legacy names Primer's markdown.css falls back to */
+  --color-fg-default: var(--pw-ink);
+  --color-fg-muted: var(--pw-muted);
+  --color-canvas-default: var(--pw-panel);
+  --color-canvas-subtle: rgba(75, 96, 124, 0.06);
+  --color-neutral-muted: rgba(75, 96, 124, 0.08);
+  --color-border-default: var(--pw-line);
+  --color-border-muted: var(--pw-line-muted);
+  --color-danger-fg: var(--pw-danger);
+  --color-accent-emphasis: var(--pw-tidal);
+}
+
+:root[data-color-mode="dark"] {
+  --pw-paper: #1b1916;
+  --pw-panel: #23211d;
+  --pw-panel-soft: #272420;
+  --pw-inset: #1f1d19;
+  --pw-ink: #e9e5df;
+  --pw-copy: #d5cfc7;
+  --pw-muted: #a49b91;
+  --pw-tidal: #8fa9c6;
+  --pw-blue: #6a9fcc;
+  --pw-terracotta: #c98a6e;
+  --pw-rust: #cf8a6a;
+  --pw-danger: #e08a76;
+  --pw-success: #7fb886;
+  --pw-attention: #d8a53f;
+  --pw-line: rgba(233, 229, 223, 0.16);
+  --pw-line-muted: rgba(233, 229, 223, 0.11);
+
+  --pw-control-bg: #272420;
+  --pw-control-border: rgba(233, 229, 223, 0.25);
+  --pw-control-focus-border: rgba(143, 169, 198, 0.55);
+  --pw-control-focus-ring: rgba(143, 169, 198, 0.5);
+  --pw-btn-bg: rgba(233, 229, 223, 0.04);
+  --pw-btn-hover-bg: rgba(233, 229, 223, 0.09);
+
+  --pw-user-bg: rgba(106, 159, 204, 0.16);
+  --pw-user-border: rgba(143, 169, 198, 0.35);
+  --pw-agent-bg: transparent;
+  --pw-active-bg: rgba(143, 169, 198, 0.12);
+  --pw-active-bar: var(--pw-tidal);
+  --pw-code-bg: rgba(143, 169, 198, 0.09);
+  --pw-add-bg: rgba(163, 164, 115, 0.22);
+  --pw-del-bg: rgba(224, 138, 118, 0.14);
+  --pw-hl-keyword: #e08a76;
+  --pw-hl-title: #c9a3e8;
+  --pw-hl-attr: #8fb8e0;
+  --pw-hl-string: #a8d0b8;
+  --pw-hl-builtin: #e3b341;
+  --pw-hl-comment: #8f867c;
+  --pw-hl-name: #7fb886;
+  --pw-hl-section: #8fa9c6;
+
+  --bgColor-default: var(--pw-panel);
+  --bgColor-muted: var(--pw-paper);
+  --bgColor-inset: var(--pw-inset);
+  --bgColor-neutral-muted: rgba(233, 229, 223, 0.07);
+  --bgColor-neutral-emphasis: #a49b91;
+  --bgColor-accent-muted: rgba(143, 169, 198, 0.16);
+  --bgColor-danger-muted: rgba(224, 138, 118, 0.12);
+  --fgColor-default: var(--pw-ink);
+  --fgColor-muted: var(--pw-muted);
+  --fgColor-accent: var(--pw-tidal);
+  --fgColor-success: var(--pw-success);
+  --fgColor-danger: var(--pw-danger);
+  --fgColor-attention: var(--pw-attention);
+  --fgColor-onEmphasis: #1b1916;
+  --borderColor-default: var(--pw-line);
+  --borderColor-muted: var(--pw-line-muted);
+  --borderColor-accent-muted: rgba(143, 169, 198, 0.4);
+  --borderColor-accent-emphasis: var(--pw-tidal);
+  --borderColor-danger-muted: rgba(224, 138, 118, 0.4);
+  --focus-outlineColor: rgba(143, 169, 198, 0.55);
+  --selection-bgColor: rgba(143, 169, 198, 0.3);
+  --overlay-bgColor: var(--pw-panel);
+  --overlay-backdrop-bgColor: rgba(11, 10, 8, 0.5);
+  --button-primary-bgColor-rest: var(--pw-tidal);
+  --button-primary-bgColor-hover: #a1b8d2;
+  --button-primary-fgColor-rest: #1b1916;
+  --button-danger-bgColor-hover: var(--pw-danger);
+  --button-danger-fgColor-hover: #1b1916;
+  --underlineNav-borderColor-active: var(--pw-rust);
+  --shadow-floating-small: 0 0 0 1px rgba(233, 229, 223, 0.12), 0 6px 18px rgba(0, 0, 0, 0.4);
+  --shadow-floating-large: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --color-note: #8fb8e0;
+  --color-tip: #7fb886;
+  --color-warning: #d8a53f;
+  --color-severe: #cf8a6a;
+  --color-caution: #e08a76;
+  --color-important: #c9a3e8;
+  --color-fg-default: var(--pw-ink);
+  --color-fg-muted: var(--pw-muted);
+  --color-canvas-default: var(--pw-panel);
+  --color-canvas-subtle: rgba(143, 169, 198, 0.07);
+  --color-neutral-muted: rgba(143, 169, 198, 0.1);
+  --color-border-default: var(--pw-line);
+  --color-border-muted: var(--pw-line-muted);
+  --color-danger-fg: var(--pw-danger);
+  --color-accent-emphasis: var(--pw-tidal);
+}
+
+::selection {
+  background: var(--selection-bgColor);
+}
+
+html {
+  scrollbar-color: var(--pw-tidal) transparent;
+  scrollbar-width: thin;
 }
 
 html,
@@ -62,6 +224,7 @@ body {
   margin: 0;
   background: var(--bgColor-muted, #f6f8fa);
   color: var(--fgColor-default, #1f2328);
+  font-family: var(--pw-serif);
   font-size: 14px;
 }
 
@@ -99,7 +262,7 @@ body {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--bgColor-muted, #f6f8fa);
+  background-color: var(--bgColor-muted, #f6f8fa);
 }
 
 .pw-panel-head {
@@ -177,7 +340,7 @@ body {
   z-index: 30;
   width: 220px;
   padding: 6px 0;
-  border-radius: 12px;
+  border-radius: 0;
   background: var(--overlay-bgColor, var(--bgColor-default, #fff));
   box-shadow: var(--shadow-floating-small, 0 0 0 1px #d1d9e080, 0 6px 18px #25292e1f);
 }
@@ -223,11 +386,11 @@ body {
   margin: 0 6px;
   padding: 6px 8px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 0;
   background: none;
   color: var(--fgColor-default, #1f2328);
-  font: inherit;
-  font-size: 13px;
+  font-family: var(--pw-mono);
+  font-size: 12px;
   text-align: left;
   cursor: pointer;
 }
@@ -287,8 +450,8 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 600;
-  font-size: 15px;
+  font-style: italic;
+  font-size: 16px;
 }
 
 .pw-brand > i {
@@ -302,6 +465,7 @@ body {
   border-radius: 999px;
   background: var(--bgColor-neutral-muted, rgba(175, 184, 193, 0.2));
   color: var(--fgColor-muted, #59636e);
+  font-family: var(--pw-mono);
   font-size: 11px;
   font-weight: 500;
   line-height: 18px;
@@ -359,11 +523,11 @@ body {
   border: 0;
   background: transparent;
   color: var(--fgColor-muted, #59636e);
-  border-radius: 6px;
+  border-radius: 0;
   padding: 6px 8px;
   cursor: pointer;
-  font: inherit;
-  font-size: 13px;
+  font-family: var(--pw-mono);
+  font-size: 12px;
 }
 
 .pw-icon-btn:hover {
@@ -377,19 +541,20 @@ body {
   gap: 6px;
   height: 32px;
   padding: 0 12px;
-  border: 1px solid var(--borderColor-default, #d0d7de);
-  border-radius: 6px;
-  background: var(--bgColor-default, #fff);
+  border: 1px solid var(--pw-control-border);
+  border-radius: 0;
+  background: var(--pw-btn-bg);
   color: var(--fgColor-default, #1f2328);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 500;
+  font-family: var(--pw-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .pw-btn:hover {
-  background: var(--bgColor-muted, #f6f8fa);
+  background: var(--pw-btn-hover-bg);
 }
 
 .pw-btn--primary {
@@ -449,16 +614,17 @@ body {
   width: 100%;
   height: 32px;
   padding: 0 10px 0 30px;
-  border: 1px solid var(--borderColor-default, #d0d7de);
-  border-radius: 6px;
-  background: var(--bgColor-default, #fff);
+  border: 1px solid var(--pw-control-border);
+  border-radius: 0;
+  background: var(--pw-control-bg);
   color: var(--fgColor-default, #1f2328);
-  font: inherit;
-  font-size: 13px;
+  font-family: var(--pw-mono);
+  font-size: 12px;
 }
 
 .pw-search input:focus {
-  outline: 2px solid var(--focus-outlineColor, #0969da);
+  border-color: var(--pw-control-focus-border);
+  outline: 2px solid var(--pw-control-focus-ring);
   outline-offset: -1px;
 }
 
@@ -742,7 +908,8 @@ body {
 /* ---------- status ---------- */
 
 .pw-status {
-  font-size: 12px;
+  font-family: var(--pw-mono);
+  font-size: 11px;
   flex-shrink: 0;
 }
 
@@ -775,11 +942,11 @@ body {
    on WinUI's 0.4, 0, 0.6, 1 spline. */
 
 :root {
-  --pw-win-accent: #005fb8;
+  --pw-win-accent: #4b607c;
 }
 
 [data-color-mode="dark"] {
-  --pw-win-accent: #60cdff;
+  --pw-win-accent: #8fa9c6;
 }
 
 .pw-progress {
@@ -969,8 +1136,9 @@ body {
   align-items: center;
   gap: 8px;
   margin: 0 0 6px;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 19px;
+  font-style: italic;
+  font-weight: 500;
   line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -995,7 +1163,8 @@ body {
   border: 1px solid var(--borderColor-muted, #d8dee4);
   border-radius: 999px;
   color: var(--fgColor-muted, #59636e);
-  font-size: 12px;
+  font-family: var(--pw-mono);
+  font-size: 11px;
   line-height: 20px;
   white-space: nowrap;
 }
@@ -1065,7 +1234,8 @@ body {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  font-size: 12px;
+  font-family: var(--pw-mono);
+  font-size: 11px;
   color: var(--fgColor-muted, #59636e);
   margin-bottom: 4px;
 }
@@ -1073,6 +1243,16 @@ body {
 .pw-msg__who {
   font-weight: 600;
   color: var(--fgColor-default, #1f2328);
+}
+
+.pw-effort {
+  padding: 0 6px;
+  border: 1px solid var(--borderColor-muted, #d8dee4);
+  border-radius: 999px;
+  font-size: 9px;
+  line-height: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .pw-avatar {
@@ -1087,7 +1267,7 @@ body {
 }
 
 .pw-bubble {
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 10px 14px;
   overflow-wrap: anywhere;
 }
@@ -1096,9 +1276,8 @@ body {
   max-width: 100%;
   background: var(--pw-user-bg);
   border: 1px solid var(--pw-user-border);
-  border-top-right-radius: 4px;
   white-space: pre-wrap;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .pw-bubble--user.is-clamped {
@@ -1110,13 +1289,15 @@ body {
 
 .pw-bubble--agent {
   background: var(--pw-agent-bg);
-  border: 1px solid var(--borderColor-default, #d0d7de);
-  border-top-left-radius: 4px;
-  padding: 14px 18px;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
 }
 
 .pw-bubble--agent .markdown-body {
-  font-size: 14px;
+  font-family: var(--pw-serif);
+  font-size: 14.5px;
+  line-height: 1.55;
   background: transparent;
 }
 
@@ -1207,8 +1388,8 @@ body {
   background: transparent;
   padding: 6px 12px;
   color: var(--fgColor-muted, #59636e);
-  font: inherit;
-  font-size: 12px;
+  font-family: var(--pw-mono);
+  font-size: 11px;
   cursor: pointer;
   text-align: left;
   border-radius: var(--pw-radius);
@@ -1354,10 +1535,11 @@ body {
 .pw-step__label {
   margin: 8px 0 4px;
   color: var(--fgColor-muted, #59636e);
+  font-family: var(--pw-mono);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
 }
 
 .pw-step__desc {
@@ -1449,8 +1631,8 @@ body {
   border-radius: 999px;
   background: transparent;
   color: var(--fgColor-muted, #59636e);
-  font: inherit;
-  font-size: 12px;
+  font-family: var(--pw-mono);
+  font-size: 11px;
   cursor: pointer;
 }
 
@@ -1495,10 +1677,11 @@ body {
 .pw-command {
   margin: 0 0 10px;
   padding: 10px 12px;
+  border: 1px solid var(--borderColor-muted, transparent);
   border-radius: 6px;
-  background: #0d1117;
-  color: #e6edf3;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--pw-code-bg);
+  color: var(--pw-ink);
+  font-family: var(--pw-mono);
   font-size: 12px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -1540,8 +1723,8 @@ body {
   position: absolute;
   top: 4px;
   right: 4px;
-  background: var(--pw-agent-bg);
-  font-family: var(--fontStack-sansSerif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  background: var(--pw-panel);
+  font-family: var(--pw-mono);
 }
 
 .pw-diagram:hover .pw-copy-btn {
@@ -1632,25 +1815,27 @@ body {
 }
 
 :root {
-  --pw-login-bg: #e9edf6;
-  --pw-login-cover: #c8d0e3;
-  --pw-login-ink: #18203a;
-  --pw-login-muted: #4b5675;
-  --pw-login-card: rgba(255, 255, 255, 0.88);
-  --pw-login-edge: rgba(24, 32, 58, 0.14);
-  --pw-login-input: #fff;
-  --pw-login-error: #b42318;
+  --pw-login-bg: #ebe7e4;
+  --pw-login-cover: #dacbc2;
+  --pw-login-ink: #252f3d;
+  --pw-login-muted: #5c5752;
+  --pw-login-card: rgba(243, 242, 240, 0.88);
+  --pw-login-edge: rgba(37, 47, 61, 0.14);
+  --pw-login-input: #f6f4f1;
+  --pw-login-error: #a5483a;
+  --pw-login-focus: #4b607c;
 }
 
 [data-color-mode="dark"] {
-  --pw-login-bg: #0e1430;
-  --pw-login-cover: #1b2448;
-  --pw-login-ink: #e6e9f5;
-  --pw-login-muted: #9aa3c2;
-  --pw-login-card: rgba(20, 27, 58, 0.86);
-  --pw-login-edge: rgba(230, 233, 245, 0.12);
-  --pw-login-input: #0b1027;
-  --pw-login-error: #ff8a80;
+  --pw-login-bg: #1b1916;
+  --pw-login-cover: #2a2721;
+  --pw-login-ink: #e9e5df;
+  --pw-login-muted: #a49b91;
+  --pw-login-card: rgba(35, 33, 29, 0.86);
+  --pw-login-edge: rgba(233, 229, 223, 0.12);
+  --pw-login-input: #1f1d19;
+  --pw-login-error: #e08a76;
+  --pw-login-focus: #8fa9c6;
 }
 
 .pw-login {
@@ -1737,8 +1922,9 @@ body {
 .pw-login__title {
   margin: 14px 0 6px;
   font-size: 30px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: -0.02em;
   line-height: 1.1;
 }
 
@@ -1750,23 +1936,27 @@ body {
 
 .pw-login__label {
   margin: 0 0 4px;
-  font-weight: 600;
+  font-family: var(--pw-mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
 .pw-login__input {
   margin-bottom: 14px;
   padding: 9px 12px;
   border: 1px solid var(--pw-login-edge);
-  border-radius: 8px;
+  border-radius: 0;
   background: var(--pw-login-input);
   color: var(--pw-login-ink);
-  font: inherit;
-  font-size: 15px;
+  font-family: var(--pw-mono);
+  font-size: 14px;
 }
 
 .pw-login__input:focus-visible,
 .pw-login__submit:focus-visible {
-  outline: 2px solid #7c8cff;
+  outline: 2px solid var(--pw-login-focus);
   outline-offset: 2px;
 }
 
@@ -1783,12 +1973,13 @@ body {
   gap: 8px;
   padding: 10px 14px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 0;
   background: var(--pw-login-ink);
   color: var(--pw-login-bg);
-  font: inherit;
-  font-size: 15px;
-  font-weight: 700;
+  font-family: var(--pw-mono);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   cursor: pointer;
 }
 
@@ -1850,8 +2041,9 @@ body {
   border-radius: 0.4em;
   background: radial-gradient(closest-side, var(--pw-login-bg) 55%, transparent);
   font-size: clamp(30px, 6vw, 72px);
-  font-weight: 800;
-  letter-spacing: -0.035em;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: -0.03em;
   white-space: nowrap;
 }
 
@@ -1880,7 +2072,7 @@ body {
   aspect-ratio: 1;
   border-radius: 50%;
   translate: -50% -50%;
-  background: conic-gradient(#d97757, #e8b931, #10a37f, #7c8cff, #f06292, #d97757);
+  background: conic-gradient(#4b607c, #b86b52, #a3a473, #e1b06e, #6a9fcc, #4b607c);
   mask-image: radial-gradient(closest-side, transparent calc(100% - 5px), #000 calc(100% - 5px));
   opacity: 0;
   animation: pw-rim 760ms linear 1600ms forwards;
@@ -2028,6 +2220,7 @@ body.is-resizing-shell {
   gap: 4px;
   min-height: 30px;
   padding: 0 6px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
   font-size: 12px;
   background: var(--bgColor-inset, #f6f8fa);
 }
@@ -2186,11 +2379,11 @@ body.is-resizing-shell {
 .pw-shells__body {
   min-height: 120px;
   padding: 6px 0 0 10px;
-  background: #ffffff;
+  background: #f3f2f0;
 }
 
 [data-color-mode="dark"] .pw-shells__body {
-  background: #0d1117;
+  background: #1b1916;
 }
 
 .pw-terminal {
@@ -2205,17 +2398,17 @@ body.is-resizing-shell {
 
 :root {
   --pw-settings-w: 440px;
-  --pw-cmd-bg: #fbefff;
-  --pw-cmd-fg: #8250df;
-  --pw-skill-bg: #fff1e5;
-  --pw-skill-fg: #bc4c00;
+  --pw-cmd-bg: rgba(75, 96, 124, 0.12);
+  --pw-cmd-fg: #4b607c;
+  --pw-skill-bg: rgba(132, 79, 59, 0.12);
+  --pw-skill-fg: #844f3b;
 }
 
 [data-color-mode="dark"] {
-  --pw-cmd-bg: rgba(163, 113, 247, 0.22);
-  --pw-cmd-fg: #d2a8ff;
-  --pw-skill-bg: rgba(219, 109, 40, 0.22);
-  --pw-skill-fg: #ffa657;
+  --pw-cmd-bg: rgba(143, 169, 198, 0.18);
+  --pw-cmd-fg: #9dbdd8;
+  --pw-skill-bg: rgba(207, 138, 106, 0.18);
+  --pw-skill-fg: #d69a7c;
 }
 
 .pw-app.has-settings {
@@ -2262,23 +2455,24 @@ body.is-resizing-shell {
 .pw-btn--small {
   height: 28px;
   padding: 0 10px;
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .pw-input {
   height: 30px;
   padding: 0 8px;
-  border: 1px solid var(--borderColor-default, #d0d7de);
-  border-radius: 6px;
-  background: var(--bgColor-default, #fff);
+  border: 1px solid var(--pw-control-border);
+  border-radius: 0;
+  background: var(--pw-control-bg);
   color: var(--fgColor-default, #1f2328);
-  font: inherit;
-  font-size: 13px;
+  font-family: var(--pw-mono);
+  font-size: 12px;
 }
 
 .pw-input:focus,
 .pw-select select:focus {
-  outline: 2px solid var(--focus-outlineColor, #0969da);
+  border-color: var(--pw-control-focus-border);
+  outline: 2px solid var(--pw-control-focus-ring);
   outline-offset: -1px;
 }
 
@@ -2296,11 +2490,11 @@ body.is-resizing-shell {
   max-width: 100%;
   height: 30px;
   padding: 0 26px 0 10px;
-  border: 1px solid var(--borderColor-default, #d0d7de);
-  border-radius: 6px;
-  background: var(--bgColor-default, #fff);
+  border: 1px solid var(--pw-control-border);
+  border-radius: 0;
+  background: var(--pw-control-bg);
   color: var(--fgColor-default, #1f2328);
-  font: inherit;
+  font-family: var(--pw-mono);
   font-size: 12px;
   text-overflow: ellipsis;
   cursor: pointer;
@@ -2340,15 +2534,16 @@ body.is-resizing-shell {
   flex-direction: column;
   gap: 6px;
   padding: 10px 10px 8px;
-  border: 1px solid var(--borderColor-default, #d0d7de);
-  border-radius: 14px;
-  background: var(--bgColor-default, #fff);
-  box-shadow: 0 1px 3px rgba(31, 35, 40, 0.06);
+  border: 1px solid var(--pw-control-border);
+  border-radius: 0;
+  background: var(--pw-control-bg);
+  box-shadow: none;
 }
 
 .pw-composer:focus-within {
-  border-color: var(--borderColor-accent-emphasis, #0969da);
-  box-shadow: 0 0 0 3px var(--bgColor-accent-muted, rgba(84, 174, 255, 0.25));
+  border-color: var(--pw-control-focus-border);
+  outline: 2px solid var(--pw-control-focus-ring);
+  outline-offset: -1px;
 }
 
 .pw-composer__bar {
@@ -2364,20 +2559,33 @@ body.is-resizing-shell {
 
 .pw-composer__chips {
   display: inline-flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  align-items: center;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--pw-control-border);
+  border-radius: 0;
+  background: var(--pw-control-bg);
+  color: var(--fgColor-muted, #59636e);
+  font-family: var(--pw-mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.pw-composer__chips .pw-chip {
+  gap: 0;
   padding: 0;
   border: 0;
-  background: none;
+  border-radius: 0;
+  color: inherit;
   font: inherit;
-  cursor: pointer;
+  line-height: normal;
 }
 
 .pw-composer__chips:empty {
   display: none;
 }
 
-.pw-composer__chips:hover .pw-chip {
+.pw-composer__chips:hover {
   border-color: var(--borderColor-default, #d0d7de);
   color: var(--fgColor-default, #1f2328);
 }
@@ -2517,7 +2725,7 @@ body.is-resizing-shell {
   padding: 6px;
   overflow-y: auto;
   list-style: none;
-  border-radius: 12px;
+  border-radius: 0;
   background: var(--overlay-bgColor, var(--bgColor-default, #fff));
   box-shadow: var(--shadow-floating-small, 0 0 0 1px #d1d9e080, 0 6px 18px #25292e1f);
 }
@@ -2533,7 +2741,7 @@ body.is-resizing-shell {
   align-items: baseline;
   gap: 8px;
   padding: 6px 8px;
-  border-radius: 6px;
+  border-radius: 0;
   font-size: 13px;
   cursor: pointer;
 }
@@ -2644,8 +2852,9 @@ body.is-resizing-shell {
 
 .pw-new__lead {
   margin: 6px 0 0;
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 22px;
+  font-style: italic;
+  font-weight: 500;
 }
 
 .pw-new__hint {
@@ -2717,8 +2926,12 @@ body.is-resizing-shell {
 
 .pw-settings__heading {
   margin: 14px 0 8px;
-  font-size: 13px;
-  font-weight: 600;
+  color: var(--fgColor-muted, #59636e);
+  font-family: var(--pw-mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .pw-settings__field {
