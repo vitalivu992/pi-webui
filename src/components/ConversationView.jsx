@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { copyText } from "../lib/clipboard.js"
-import { agentLabel, clockTime, duration, longDateTime, plural, statusMeta } from "../lib/format.js"
+import { agentLabel, clockTime, duration, longDateTime, plural, statusMeta, tokenCount, tokenPct } from "../lib/format.js"
 import { atBottom, isWorking } from "../lib/live.js"
 import { Composer } from "./Composer.jsx"
 import { PiIcon } from "./PiIcon.jsx"
@@ -115,6 +115,11 @@ function AssistantMessage({ entry, index, expandAll, live }) {
       <div className="pw-msg__main">
         <div className="pw-msg__meta">
           <span className="pw-msg__who">{agentLabel(entry.model)}</span>
+          {entry.effort ? (
+            <span className="pw-effort" title="Thinking effort">
+              {entry.effort}
+            </span>
+          ) : null}
           {entry.endedAt ? (
             <time dateTime={entry.endedAt} title={longDateTime(entry.endedAt)}>
               {clockTime(entry.endedAt)}
@@ -179,6 +184,21 @@ function EventRow({ entry }) {
   )
 }
 
+/** Multi-line tooltip for the tokens chip: every count and its share of the total. */
+function tokensTitle(t) {
+  const row = (label, n) => `${label}: ${Number(n).toLocaleString()} (${tokenPct(n, t.total)})`
+  return [
+    row("Input", t.input),
+    row("Output", t.output),
+    row("Cache read", t.cacheRead),
+    row("Cache write", t.cacheWrite),
+    row("Reasoning", t.reasoning),
+    t.cost ? `Cost: $${t.cost.toFixed(4)}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n")
+}
+
 function Header({ conversation, working, expandAll, onExpandAll }) {
   const c = conversation
   const models = (c.models || []).length ? c.models : [""]
@@ -210,6 +230,12 @@ function Header({ conversation, working, expandAll, onExpandAll }) {
           <span className="pw-chip">
             {plural(c.turns, "prompt")} · {plural(c.toolCalls, "tool call")}
           </span>
+          {c.tokens?.total ? (
+            <span className="pw-chip pw-chip--mono" title={tokensTitle(c.tokens)}>
+              <i className="fa-solid fa-coins" aria-hidden="true"></i>
+              {`in ${tokenCount(c.tokens.input)} ${tokenPct(c.tokens.input, c.tokens.total)} · out ${tokenCount(c.tokens.output)} ${tokenPct(c.tokens.output, c.tokens.total)} · cache ${tokenCount(c.tokens.cacheRead + c.tokens.cacheWrite)} ${tokenPct(c.tokens.cacheRead + c.tokens.cacheWrite, c.tokens.total)}`}
+            </span>
+          ) : null}
           <span className="pw-chip pw-chip--mono" title="Session id">
             {c.id}
           </span>

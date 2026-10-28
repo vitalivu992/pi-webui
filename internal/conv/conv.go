@@ -46,19 +46,44 @@ type Step struct {
 	Truncated bool            `json:"truncated,omitempty"`
 }
 
+// Tokens sums the token usage of one turn or of a whole conversation.
+// Total includes Reasoning, so the parts add up to it.
+type Tokens struct {
+	Input      int     `json:"input"`
+	Output     int     `json:"output"`
+	CacheRead  int     `json:"cacheRead"`
+	CacheWrite int     `json:"cacheWrite"`
+	Reasoning  int     `json:"reasoning"`
+	Total      int     `json:"total"`
+	Cost       float64 `json:"cost,omitempty"`
+}
+
+// Add adds o's counts into t.
+func (t *Tokens) Add(o *Tokens) {
+	t.Input += o.Input
+	t.Output += o.Output
+	t.CacheRead += o.CacheRead
+	t.CacheWrite += o.CacheWrite
+	t.Reasoning += o.Reasoning
+	t.Cost += o.Cost
+	t.Total = t.Input + t.Output + t.CacheRead + t.CacheWrite + t.Reasoning
+}
+
 // Entry is a turn (prompt → work → final answer) or an event between turns.
 type Entry struct {
 	Kind string `json:"kind"`
 	// Turn fields.
-	Prompt   string `json:"prompt,omitempty"`
-	PromptAt string `json:"promptAt,omitempty"`
-	Model    string `json:"model,omitempty"`
-	Steps    []Step `json:"steps,omitempty"`
-	Final    string `json:"final,omitempty"`
-	FinalAt  string `json:"finalAt,omitempty"`
-	EndedAt  string `json:"endedAt,omitempty"`
-	Status   string `json:"status,omitempty"`
-	Error    string `json:"error,omitempty"`
+	Prompt   string  `json:"prompt,omitempty"`
+	PromptAt string  `json:"promptAt,omitempty"`
+	Model    string  `json:"model,omitempty"`
+	Effort   string  `json:"effort,omitempty"`
+	Steps    []Step  `json:"steps,omitempty"`
+	Final    string  `json:"final,omitempty"`
+	FinalAt  string  `json:"finalAt,omitempty"`
+	EndedAt  string  `json:"endedAt,omitempty"`
+	Status   string  `json:"status,omitempty"`
+	Error    string  `json:"error,omitempty"`
+	Tokens   *Tokens `json:"tokens,omitempty"`
 	// Event fields.
 	Text   string `json:"text,omitempty"`
 	Detail string `json:"detail,omitempty"`
@@ -78,6 +103,7 @@ type Summary struct {
 	Status      string   `json:"status"`
 	Turns       int      `json:"turns"`
 	ToolCalls   int      `json:"toolCalls"`
+	Tokens      *Tokens  `json:"tokens,omitempty"`
 	SizeBytes   int64    `json:"sizeBytes"`
 	// Active: the file changed in the last few minutes (the session may still be open).
 	Active bool `json:"active,omitempty"`
@@ -93,7 +119,7 @@ type Conversation struct {
 // counts, models in order of first use, the last turn's status, and the
 // first prompt as the title when none was set.
 func (c *Conversation) Finish() {
-	c.Turns, c.ToolCalls, c.Models = 0, 0, nil
+	c.Turns, c.ToolCalls, c.Models, c.Tokens = 0, 0, nil, nil
 	seen := map[string]bool{}
 	status := ""
 	for _, e := range c.Entries {
@@ -102,6 +128,12 @@ func (c *Conversation) Finish() {
 		}
 		c.Turns++
 		status = e.Status
+		if e.Tokens != nil {
+			if c.Tokens == nil {
+				c.Tokens = &Tokens{}
+			}
+			c.Tokens.Add(e.Tokens)
+		}
 		for _, s := range e.Steps {
 			if s.Kind == StepTool {
 				c.ToolCalls++

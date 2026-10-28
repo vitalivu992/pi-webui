@@ -133,3 +133,16 @@ export function formatMs(ms) {
 export function plural(n, word, many = `${word}s`) {
   return `${n} ${n === 1 ? word : many}`
 }
+
+/** "999", "12.4k", "154k", "1.2M" for token counts. */
+export function tokenCount(n) {
+  if (!(n > 0)) return "0"
+  if (n < 1000) return String(n)
+  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 100_000 ? 1 : 0)}k`
+  return `${(n / 1_000_000).toFixed(1)}M`
+}
+
+/** Percent of a token total, "0%" when there is no total. */
+export function tokenPct(n, total) {
+  return total > 0 ? `${Math.round((n / total) * 100)}%` : "0%"
+}

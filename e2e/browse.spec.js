@@ -27,6 +27,8 @@ test("browses a project's pi sessions", async ({ page }) => {
   const chat = page.locator("#pwChat")
   await expect(chat.locator(".pw-msg--user")).toContainText("Add a health endpoint")
   await expect(chat.locator(".pw-msg--agent .pw-msg__who")).toHaveText("pi - Opus 5.5")
+  await expect(chat.locator(".pw-msg--agent .pw-effort")).toHaveText("high")
+  await expect(page.locator(".pw-view__meta")).toContainText("in 900 29% · out 120 4% · cache 2.1k 67%")
   // The final answer is rendered markdown; the work is collapsed.
   await expect(chat.locator(".markdown-body table")).toContainText("/health")
   await expect(chat.locator(".pw-steps")).toHaveCount(0)

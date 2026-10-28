@@ -37,10 +37,17 @@ export function session(id, cwd, at, entries) {
 }
 
 export const user = (text, at) => ({ type: "message", timestamp: at, message: { role: "user", content: [{ type: "text", text }] } })
-export const assistant = (content, at, { model = "claude-opus-5-5", stopReason = "stop" } = {}) => ({
+export const assistant = (content, at, { model = "claude-opus-5-5", stopReason = "stop", thinkingLevel, usage } = {}) => ({
   type: "message",
   timestamp: at,
-  message: { role: "assistant", content, model, stopReason },
+  message: {
+    role: "assistant",
+    content,
+    model,
+    stopReason,
+    ...(thinkingLevel ? { thinkingLevel } : {}),
+    ...(usage ? { usage } : {}),
+  },
 })
 export const toolCall = (id, name, args) => ({ type: "toolCall", id, name, arguments: args })
 export const toolResult = (id, text, at) => ({
@@ -68,7 +75,11 @@ export function makeFixtures() {
       toolResult("t1", "ok  demo 0.01s", "2026-10-20T10:00:08Z"),
       assistant(
         [{ type: "text", text: "## Done\n\nAdded `GET /health`.\n\n| Route | Status |\n|---|---|\n| /health | 200 |" }],
-        "2026-10-20T10:00:10Z"
+        "2026-10-20T10:00:10Z",
+        {
+          thinkingLevel: "high",
+          usage: { input: 900, output: 120, cacheRead: 2000, cacheWrite: 100, reasoning: 30, cost: { total: 0.0042 } },
+        }
       ),
     ]),
     { type: "session_info", id: "i1", parentId: "e5", timestamp: "2026-10-20T10:00:11Z", name: "Health endpoint" },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { agentLabel, duration, formatMs, greeting, modelLabel, shortDateTime } from "../src/lib/format.js"
+import { agentLabel, duration, formatMs, greeting, modelLabel, shortDateTime, tokenCount, tokenPct } from "../src/lib/format.js"
 
 describe("modelLabel", () => {
   it.each([
@@ -25,6 +25,25 @@ describe("agentLabel", () => {
     expect(agentLabel("zai/glm-5.3")).toBe("pi - GLM 5.3")
   })
   it("falls back to pi alone", () => expect(agentLabel("")).toBe("pi"))
+})
+
+describe("tokenCount", () => {
+  it.each([
+    [0, "0"],
+    [999, "999"],
+    [1000, "1.0k"],
+    [12386, "12.4k"],
+    [154_000, "154k"],
+    [1_234_567, "1.2M"],
+    [undefined, "0"],
+  ])("%s → %s", (n, want) => expect(tokenCount(n)).toBe(want))
+})
+
+describe("tokenPct", () => {
+  it("shares of a total", () => {
+    expect(tokenPct(8740, 12_540)).toBe("70%")
+    expect(tokenPct(0, 0)).toBe("0%")
+  })
 })
 
 describe("times", () => {

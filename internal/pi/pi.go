@@ -30,15 +30,28 @@ type entry struct {
 }
 
 type message struct {
-	Role         string          `json:"role"`
-	Content      json.RawMessage `json:"content"`
-	Model        string          `json:"model"`
-	StopReason   string          `json:"stopReason"`
-	ErrorMessage string          `json:"errorMessage"`
-	ToolCallID   string          `json:"toolCallId"`
-	IsError      bool            `json:"isError"`
-	Command      string          `json:"command"`
-	Output       string          `json:"output"`
+	Role          string          `json:"role"`
+	Content       json.RawMessage `json:"content"`
+	Model         string          `json:"model"`
+	StopReason    string          `json:"stopReason"`
+	ErrorMessage  string          `json:"errorMessage"`
+	ToolCallID    string          `json:"toolCallId"`
+	IsError       bool            `json:"isError"`
+	Command       string          `json:"command"`
+	Output        string          `json:"output"`
+	ThinkingLevel string          `json:"thinkingLevel"`
+	Usage         *usage          `json:"usage"`
+}
+
+type usage struct {
+	Input      int `json:"input"`
+	Output     int `json:"output"`
+	CacheRead  int `json:"cacheRead"`
+	CacheWrite int `json:"cacheWrite"`
+	Reasoning  int `json:"reasoning"`
+	Cost       struct {
+		Total float64 `json:"total"`
+	} `json:"cost"`
 }
 
 type block struct {
@@ -218,6 +231,22 @@ func (b *builder) message(m *message, at string) {
 		e.Model = b.model
 		e.EndedAt = at
 		b.stop = m.StopReason
+		if m.ThinkingLevel != "" {
+			e.Effort = m.ThinkingLevel
+		}
+		if m.Usage != nil {
+			if e.Tokens == nil {
+				e.Tokens = &conv.Tokens{}
+			}
+			e.Tokens.Add(&conv.Tokens{
+				Input:      m.Usage.Input,
+				Output:     m.Usage.Output,
+				CacheRead:  m.Usage.CacheRead,
+				CacheWrite: m.Usage.CacheWrite,
+				Reasoning:  m.Usage.Reasoning,
+				Cost:       m.Usage.Cost.Total,
+			})
+		}
 		if m.StopReason == "error" || m.StopReason == "aborted" {
 			e.Error = m.ErrorMessage
 		}
