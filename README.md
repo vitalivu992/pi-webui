@@ -158,3 +158,8 @@ make dev         # build the web app, run the Go server on :8777
 make dev-web     # Vite with HMR on :5173, proxies /api to :8777
 make test        # go test + vitest + playwright (e2e runs over generated fixtures, not your real data)
 ```
+
+## License
+
+MIT — see `LICENSE`. Bundled and linked third-party components are listed in
+`THIRD_PARTY_NOTICES.md`. Report security issues as described in `SECURITY.md`.
