@@ -162,6 +162,7 @@ are read on request and summaries cached in memory by file size + mtime.
   for pi's bash/read/edit/write/grep/find/ls plus extension and MCP tools; `editPairs`),
   `markdown.js`, `theme.js`, `prefs.js` (localStorage `pw_prefs`: theme,
   collapsed panel, missing projects shown, last composer model — UI prefs only, reads/writes never throw).
-- Styling: Primer CSS tokens + Font Awesome; classes and ids are prefixed `pw-` / `pw…`; app
+- Styling: text in GitHub's system sans stack (`--pw-sans`, also Primer's `--fontStack-sansSerif`),
+  headings (h1–h6, brand, column and login titles) in `--pw-serif`; Primer CSS tokens + Font Awesome; classes and ids are prefixed `pw-` / `pw…`; app
   colours are `--pw-*` variables in `src/styles/app.css` with dark values under
   `[data-color-mode="dark"]` (set on `<html>` by `theme.js` and the inline script in `index.html`).

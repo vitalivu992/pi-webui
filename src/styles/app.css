@@ -1,6 +1,6 @@
 /* pi WebUI: three-column conversation browser styled after pi.dev — a warm
-   paper canvas with a faint page grid, serif prose and italic headings, mono
-   controls and labels, hairline borders. The palette lives in the --pw-*
+   paper canvas with a faint page grid, GitHub's sans-serif text with serif
+   italic headings, mono controls and labels, hairline borders. The palette lives in the --pw-*
    variables below (dark values in the [data-color-mode="dark"] block); the
    Primer token names the rules below read are defined here too, mapped onto
    that palette. */
@@ -13,7 +13,10 @@
   --pw-convs-w: 360px;
   --pw-radius: 8px;
 
-  /* Fonts are theme-independent: both modes use the same faces. */
+  /* Fonts are theme-independent: both modes use the same faces. Text is in
+     GitHub's system stack; the serif is for headings. */
+  --pw-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji";
   --pw-serif: "Plantin MT Pro", "Plantin MT Std", Plantin, Georgia, "Times New Roman", serif;
   --pw-mono: "Commit Mono", "Departure Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
@@ -94,7 +97,7 @@
   --button-danger-fgColor-hover: var(--pw-panel);
   --counter-borderColor: transparent;
   --underlineNav-borderColor-active: var(--pw-rust);
-  --fontStack-sansSerif: var(--pw-serif);
+  --fontStack-sansSerif: var(--pw-sans);
   --shadow-floating-small: 0 0 0 1px rgba(92, 87, 82, 0.18), 0 6px 18px rgba(120, 98, 81, 0.14);
   --shadow-floating-large: 0 8px 24px rgba(120, 98, 81, 0.28);
   --color-note: var(--pw-tidal);
@@ -224,8 +227,21 @@ body {
   margin: 0;
   background: var(--bgColor-muted, #f6f8fa);
   color: var(--fgColor-default, #1f2328);
-  font-family: var(--pw-serif);
+  font-family: var(--pw-sans);
   font-size: 14px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.pw-brand,
+.pw-convs__name,
+.pw-login__title,
+.pw-login__welcome {
+  font-family: var(--pw-serif);
 }
 
 /* ---------- layout ---------- */
@@ -1295,7 +1311,7 @@ body {
 }
 
 .pw-bubble--agent .markdown-body {
-  font-family: var(--pw-serif);
+  font-family: var(--pw-sans);
   font-size: 14.5px;
   line-height: 1.55;
   background: transparent;
