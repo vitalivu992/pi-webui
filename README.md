@@ -82,6 +82,21 @@ on start also restores this cookie.
 - **Conversations**: title, status icon, model, prompt and tool-call counts, last update.
   Filter by text (title, id, model, branch). The ✎ button in the header starts a **new
   conversation** in the project.
+- **Views** (the icon row under the second column's header, which reads "<project> · <view>";
+  the selected view shows its name and count, another project keeps the view): **Sessions**
+  (the conversations above), **Skills**, and — when pi's settings list the package (asked
+  once after login) — **Cron jobs** (`agents-cron`) and **Memory** (`pi-hermes-memory`).
+  The main column shows what is selected:
+  - **Cron jobs**: the project's scheduled tasks (schedule, next run, last outcome); a task
+    shows its prompt, settings, counters and run history, and a run its status, duration,
+    summary or error and the run's pi transcript (read-only, **Show work** as usual).
+  - **Memory**: the project's memory and failures, then the global memory, user profile,
+    failures (each tagged with the project it came from) and standing instructions; each entry
+    with its category and dates, filterable.
+  - **Skills**: every skill pi loads in the project (`.pi/skills`, `.agents/skills`,
+    `~/.pi/agent/skills`, `~/.agents/skills`, and the ones pi-hermes-memory saved), with its
+    source; a skill shows its rendered `SKILL.md` and its `/skill:` name (or "not
+    invocable" for `user-invocable: false`).
 - **Conversation**: header with the model, start time, session id; **Show work** expands every
   answer's work details (pi's `edit` calls show each replacement as removed and added text);
   **Resume** opens `cd <cwd> && pi --session <id>` with a copy button and **Run in shell**
@@ -150,6 +165,15 @@ The new conversation's id is made by the server, so the page opens it as soon as
 
 pi sessions are trees (rewinds and forks branch them): the branch ending at the last entry is
 shown. Sessions with no prompt are left out.
+
+The views beside the conversations read (never write):
+
+| | |
+|---|---|
+| Installed packages | `~/.pi/agent/settings.json` `packages` (`npm:pi-hermes-memory`, `npm:agents-cron`, git or path sources) |
+| Memory | `~/.pi/agent/pi-hermes-memory/{MEMORY,USER,failures,STANDING}.md`; the project's `~/.pi/agent/projects-memory/<name>/{MEMORY,failures}.md` (name: the git repository's folder, as the package picks it). Entries are `§`-separated, with `<!-- created=…, last=…, project64=… -->`. The SQLite index (`sessions.db`) isn't read |
+| Cron jobs | `~/.agents/cron/tasks.json` (tasks bound to the project's folder); `<project>/.agents/cron/runs/<run>.json`, `reports/<task>/<run>.md` and the transcript `sessions/<task>/<run>.jsonl` (or pi's session store) |
+| Skills | `<name>/SKILL.md` in pi's skill folders and pi-hermes-memory's `skills/` (global and the project's) |
 
 ## Develop
 

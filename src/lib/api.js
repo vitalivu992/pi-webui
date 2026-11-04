@@ -125,3 +125,43 @@ export async function startRun(req) {
 export async function stopRun(id) {
   await getJSON(`/api/runs/${encodeURIComponent(id)}`, { method: "DELETE" })
 }
+
+// The views beside the conversations (internal/api extras.go): pi-hermes-memory's
+// memory, agents-cron's scheduled tasks, and the skills pi loads.
+
+/** Which of those pi packages pi has installed: `{ memory, cron }`. */
+export async function fetchFeatures(opts) {
+  return getJSON("/api/features", opts)
+}
+
+/** `{ project, stores: [{ id, title, scope, path, updatedAt, entries }] }`, the project's stores first. */
+export async function fetchMemory(projectKey, opts) {
+  const q = new URLSearchParams({ project: projectKey })
+  return getJSON(`/api/memory?${q}`, opts)
+}
+
+export async function fetchCronTasks(projectKey, opts) {
+  const q = new URLSearchParams({ project: projectKey })
+  return (await getJSON(`/api/cron?${q}`, opts)).tasks || []
+}
+
+/** `{ task, runs }`, runs newest first. */
+export async function fetchCronTask(id, opts) {
+  return getJSON(`/api/cron/${encodeURIComponent(id)}`, opts)
+}
+
+/** `{ task, run, report, conversation? }`: the transcript when the run wrote one. */
+export async function fetchCronRun(taskId, runId, opts) {
+  return getJSON(`/api/cron/${encodeURIComponent(taskId)}/runs/${encodeURIComponent(runId)}`, opts)
+}
+
+export async function fetchSkills(projectKey, opts) {
+  const q = new URLSearchParams({ project: projectKey })
+  return (await getJSON(`/api/skills?${q}`, opts)).skills || []
+}
+
+/** `{ skill, body }`: the SKILL.md's markdown after its frontmatter. */
+export async function fetchSkill(name, projectKey, opts) {
+  const q = new URLSearchParams({ project: projectKey })
+  return getJSON(`/api/skills/${encodeURIComponent(name)}?${q}`, opts)
+}

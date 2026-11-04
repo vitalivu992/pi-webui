@@ -94,18 +94,81 @@ func templates(dir, prefix, source string) []Command {
 	return out
 }
 
-// skills: <dir>/<name>/SKILL.md; the frontmatter name wins over the folder's.
-// Skills marked `user-invocable: false` aren't offered.
+// skills: <dir>/<name>/SKILL.md as commands. Skills marked
+// `user-invocable: false` aren't offered.
 func skills(dir, prefix, source string) []Command {
+	var out []Command
+	for _, s := range readSkills(dir, source) {
+		if s.Invocable {
+			out = append(out, Command{Name: s.Name, Insert: prefix + s.Name, Kind: "skill", Description: s.Description,
+				Source: source, Path: s.Path})
+		}
+	}
+	return out
+}
+
+// Skill is one SKILL.md, for the skills view.
+type Skill struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Source      string `json:"source"` // "project", "user" or "memory"
+	Path        string `json:"path"`
+	// Invocable: offered as /skill:name (not marked `user-invocable: false`).
+	Invocable bool `json:"invocable"`
+}
+
+// SkillDir is a folder of <name>/SKILL.md skills.
+type SkillDir struct{ Dir, Source string }
+
+// Skills lists the skills pi loads for a folder (the folders Commands reads)
+// and then the ones in extra, by name; of two with one name the first wins.
+func Skills(cwd string, d Dirs, extra ...SkillDir) []Skill {
+	var dirs []SkillDir
+	if cwd != "" {
+		dirs = append(dirs, SkillDir{filepath.Join(cwd, ".pi/skills"), "project"}, SkillDir{filepath.Join(cwd, ".agents/skills"), "project"})
+	}
+	dirs = append(dirs, SkillDir{filepath.Join(d.Pi, "agent", "skills"), "user"})
+	if d.Home != "" {
+		dirs = append(dirs, SkillDir{filepath.Join(d.Home, ".agents", "skills"), "user"})
+	}
+	seen := map[string]bool{}
+	out := []Skill{}
+	for _, sd := range append(dirs, extra...) {
+		for _, s := range readSkills(sd.Dir, sd.Source) {
+			if !seen[s.Name] {
+				seen[s.Name] = true
+				out = append(out, s)
+			}
+		}
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out
+}
+
+// SkillBody is a skill file's markdown after its frontmatter.
+func SkillBody(path string) (string, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	s := strings.ReplaceAll(string(b), "\r\n", "\n")
+	if head, found := cutFrontmatter(s); found {
+		s = strings.TrimPrefix(s[4+len(head):], "\n---")
+	}
+	return strings.TrimLeft(s, "\n"), nil
+}
+
+// readSkills: <dir>/<name>/SKILL.md; the frontmatter name wins over the folder's.
+func readSkills(dir, source string) []Skill {
 	if dir == "" {
 		return nil
 	}
 	entries, _ := os.ReadDir(dir)
-	var out []Command
+	var out []Skill
 	for _, e := range entries {
 		path := filepath.Join(dir, e.Name(), "SKILL.md")
 		meta, ok := frontmatter(path)
-		if !ok || meta["user-invocable"] == "false" {
+		if !ok {
 			continue
 		}
 		name := meta["name"]
@@ -115,8 +178,8 @@ func skills(dir, prefix, source string) []Command {
 		if !validName(name) {
 			continue
 		}
-		out = append(out, Command{Name: name, Insert: prefix + name, Kind: "skill", Description: meta["description"],
-			Source: source, Path: path})
+		out = append(out, Skill{Name: name, Description: meta["description"], Source: source, Path: path,
+			Invocable: meta["user-invocable"] != "false"})
 	}
 	return out
 }

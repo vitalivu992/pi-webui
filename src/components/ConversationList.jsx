@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react"
 import { longDateTime, modelLabel, plural, relativeTime, shortDateTime, statusMeta } from "../lib/format.js"
 import { liveState } from "../lib/live.js"
+import { ColumnHead } from "./ColumnHead.jsx"
 import { LiveIcon } from "./Running.jsx"
 
 /** Conversations whose title, id, branch or model contains `text`. */
@@ -17,9 +18,9 @@ export function filterConversations(conversations, text = "") {
 /**
  * Second column: the selected project's conversations, newest first. The ones an agent is
  * working on, or has just finished, carry a live icon. "New" starts a conversation with
- * pi in the project's folder.
+ * pi in the project's folder. `tabs` (the view icons) go under the header.
  */
-export function ConversationList({ project, conversations, loading, error, selectedId, onSelect, onRefresh, onNew, creating = false }) {
+export function ConversationList({ project, view, tabs, conversations, loading, error, selectedId, onSelect, onRefresh, onNew, creating = false }) {
   const [text, setText] = useState("")
   const shown = useMemo(() => filterConversations(conversations, text), [conversations, text])
 
@@ -33,32 +34,20 @@ export function ConversationList({ project, conversations, loading, error, selec
 
   return (
     <section className="pw-convs" aria-label="Conversations">
-      <header className="pw-panel-head">
-        <div className="pw-convs__project" title={project.path}>
-          <span className="pw-convs__name">{project.name}</span>
-          {project.path ? (
-            <span className="pw-convs__path">
-              <bdi>{project.path}</bdi>
-            </span>
-          ) : null}
-        </div>
-        <div className="pw-panel-head__actions">
-          <button type="button" className="pw-icon-btn" onClick={onRefresh} title="Reload" aria-label="Reload conversations">
-            <i className={`fa-solid fa-rotate${loading ? " fa-spin" : ""}`} aria-hidden="true"></i>
-          </button>
-          <button
-            type="button"
-            className={`pw-icon-btn pw-new-btn${creating ? " is-open" : ""}`}
-            id="pwNewConversationBtn"
-            onClick={() => onNew?.()}
-            disabled={!project.exists}
-            title={project.exists ? `New conversation in ${project.name}` : "The project's folder doesn't exist any more"}
-            aria-label="New conversation"
-          >
-            <i className="fa-regular fa-pen-to-square" aria-hidden="true"></i>
-          </button>
-        </div>
-      </header>
+      <ColumnHead project={project} view={view} loading={loading} onRefresh={onRefresh}>
+        <button
+          type="button"
+          className={`pw-icon-btn pw-new-btn${creating ? " is-open" : ""}`}
+          id="pwNewConversationBtn"
+          onClick={() => onNew?.()}
+          disabled={!project.exists}
+          title={project.exists ? `New conversation in ${project.name}` : "The project's folder doesn't exist any more"}
+          aria-label="New conversation"
+        >
+          <i className="fa-regular fa-pen-to-square" aria-hidden="true"></i>
+        </button>
+      </ColumnHead>
+      {tabs}
       <div className="pw-search">
         <i className="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
         <input

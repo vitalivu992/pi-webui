@@ -1,6 +1,7 @@
 // Writes a fake home for e2e: one project with three pi sessions, an older session in a folder
-// that no longer exists (hidden by default), a pi skill and prompt template, and a fake `pi` CLI
-// in bin/ (the server's LAUNCH_PATH) for the prompts sent from the UI.
+// that no longer exists (hidden by default), a pi skill and prompt template, a fake `pi` CLI
+// in bin/ (the server's LAUNCH_PATH) for the prompts sent from the UI, and the stores of the
+// pi-hermes-memory and agents-cron packages (listed as installed in pi's settings).
 // Run by playwright.config.js before it starts the server.
 import { chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
@@ -14,6 +15,9 @@ export const SESSIONS = join(HOME, ".pi", "agent", "sessions")
 export const PI_LOG = join(HOME, "pi-args.log")
 
 export const HEALTH_ID = "11111111-aaaa-4bbb-8ccc-000000000001"
+export const CRON_TASK = "task_0a1b2c3d"
+export const CRON_RUN_OK = "run_20261104000000_aaaa0001"
+export const CRON_RUN_FAILED = "run_20261103000000_aaaa0002"
 
 /** pi's session folder for a cwd: "--home-me-app--". */
 export const sessionDir = (cwd) => join(SESSIONS, `--${cwd.replace(/^\//, "").replace(/[^A-Za-z0-9]+/g, "-")}--`)
@@ -184,7 +188,57 @@ export function makeTools() {
   writeFileSync(template, "---\ndescription: Create grouped commits\n---\nCommit the changes.\n")
 }
 
+const text = (path, content) => {
+  mkdirSync(dirname(path), { recursive: true })
+  writeFileSync(path, content)
+}
+
+/** pi-hermes-memory's markdown stores and agents-cron's registry and runs, for the demo project. */
+export function makeExtras() {
+  const agent = join(HOME, ".pi", "agent")
+  text(join(agent, "settings.json"), JSON.stringify({ packages: ["npm:pi-extmgr", "npm:pi-hermes-memory", "npm:agents-cron@0.16.1"] }))
+  const mem = join(agent, "pi-hermes-memory")
+  const demo64 = Buffer.from("demo_app").toString("base64url")
+  text(join(mem, "MEMORY.md"), "Uses pnpm, not npm <!-- created=2026-11-01, last=2026-11-04 -->\n§\nCI runs on GitHub Actions")
+  text(join(mem, "USER.md"), "Prefers short answers <!-- created=2026-11-01, last=2026-11-01 -->")
+  text(
+    join(mem, "failures.md"),
+    `[correction] Run \`go test\` before committing — Failed: committed a broken build <!-- created=2026-11-02, last=2026-11-02, project64=${demo64} -->\n§\n[failure] Elsewhere <!-- created=2026-11-02, last=2026-11-02 -->`
+  )
+  text(join(mem, "skills", "debug-go-tests", "SKILL.md"), "---\nname: debug-go-tests\ndescription: Find why a Go test fails\n---\n\n## Procedure\n\n1. Run `go test -run X -v`\n")
+  text(join(agent, "projects-memory", "demo_app", "MEMORY.md"), "The health endpoint lives in `main.go` <!-- created=2026-11-03, last=2026-11-03 -->")
+
+  const task = {
+    id: CRON_TASK,
+    projectDir: PROJECT,
+    name: "Nightly audit",
+    prompt: "Audit the dependencies and report outdated ones.",
+    schedule: { kind: "cron", expression: "0 0 * * *" },
+    enabled: true,
+    nextRunAt: "2026-11-06T00:00:00.000Z",
+    lastRunAt: "2026-11-04T00:00:00.000Z",
+    lastStatus: "success",
+    successCount: 1,
+    errorCount: 1,
+    createdAt: "2026-11-01T00:00:00.000Z",
+    updatedAt: "2026-11-04T00:00:00.000Z",
+  }
+  text(join(HOME, ".agents", "cron", "tasks.json"), JSON.stringify({ version: 2, tasks: [task] }))
+  const store = join(PROJECT, ".agents", "cron")
+  const sessionFile = join(store, "sessions", CRON_TASK, `${CRON_RUN_OK}.jsonl`)
+  const runs = [
+    { runId: CRON_RUN_OK, taskId: CRON_TASK, trigger: "scheduled", startedAt: "2026-11-04T00:00:00.000Z", finishedAt: "2026-11-04T00:01:05.000Z", status: "success", exitCode: 0, agent: "pi", sessionFile, summary: "All **3** dependencies are current." },
+    { runId: CRON_RUN_FAILED, taskId: CRON_TASK, trigger: "manual", startedAt: "2026-11-03T00:00:00.000Z", finishedAt: "2026-11-03T00:00:02.000Z", status: "error", exitCode: 1, agent: "pi", error: "pi exited with code 1: no network" },
+  ]
+  for (const r of runs) text(join(store, "runs", `${r.runId}.json`), JSON.stringify(r))
+  write(sessionFile, session("cron-session-1", PROJECT, "2026-11-04T00:00:00Z", [
+    user("Audit the dependencies and report outdated ones.", "2026-11-04T00:00:01Z"),
+    assistant([{ type: "text", text: "Checked go.mod: nothing is outdated." }], "2026-11-04T00:01:00Z"),
+  ]))
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   makeFixtures()
   makeTools()
+  makeExtras()
 }

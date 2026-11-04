@@ -71,7 +71,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	login.Register(mux)
-	(&api.Handler{Catalog: cat}).Register(mux)
+	(&api.Handler{Catalog: cat, PiDir: cfg.PiDir, Home: dirs.Home}).Register(mux)
 	shells.Register(mux)
 	prompts.Register(mux)
 	// The single-page app: bundle files, else index.html for client routes.

@@ -10,7 +10,7 @@ make dev | make dev-web     # Go server on :8777 | Vite HMR on :5173 proxying /a
 make run                    # build, then bin/server in the foreground with .env applied
 make up|down|install|logs   # per-user service via ctl.sh: systemd user unit pi-webui (Linux),
                             # launchd agent dev.pi-webui (macOS), both generated with the checkout path
-go test ./...               # Go tests (parser, catalog, launch, runs, api)
+go test ./...               # Go tests (parser, catalog, launch, runs, api, memory, cron)
 pnpm test:unit              # vitest (tests/*.test.mjs; JSX helpers import fine)
 pnpm test:e2e               # playwright: e2e/make-fixtures.mjs writes a fake home to .e2e-home/,
                             # then the config starts the server on :8778 over it (PI_DIR there,
@@ -98,6 +98,19 @@ are read on request and summaries cached in memory by file size + mtime.
   mtime + active flag, so it also changes when the active window passes; `If-None-Match` → 304
   without parsing). `cmd/server` adds gzip for `/api/*` and an access log,
   and listens on `HOST` (default `127.0.0.1`). `~/.agents` is looked for next to `PI_DIR`.
+- `internal/api/extras.go` — the views beside the conversations, read-only: `GET /api/features`
+  (`Installed`: `pi-hermes-memory` / `agents-cron` in `PI_DIR/agent/settings.json` `packages`,
+  string or `{source}`), `/api/memory?project=`, `/api/cron?project=`, `/api/cron/{task}`,
+  `/api/cron/{task}/runs/{run}` (run + report + the transcript parsed by `pi.ParseFile`),
+  `/api/skills?project=`, `/api/skills/{name}?project=`. `internal/memory` reads
+  pi-hermes-memory's markdown stores (`§`-separated entries, `<!-- created, last, project64 -->`
+  meta; `ProjectName` mirrors the package's choice: git repo root's name, worktrees followed,
+  an existing folder under the cwd's own name wins; home = none; global failures tagged with
+  the project are listed under the project too). `internal/cron` reads agents-cron's registry
+  (`~/.agents/cron/tasks.json`, next to `PI_DIR` like `~/.agents/skills`) and the project's
+  `.agents/cron/{runs,reports,sessions}`; ids are validated (they become file names) and
+  `SessionPath` only accepts the task's own sessions file or one under pi's session store.
+  `launch.Skills` lists every skill (also `user-invocable: false`) plus extra folders.
 - `web/` — `go:embed` of `web/dist` + SPA fallback handler (404s unknown `/api/*` and `/health`).
 
 ### Frontend (`src/`)
@@ -111,7 +124,14 @@ are read on request and summaries cached in memory by file size + mtime.
   (backdrop blurs and turns opaque, then the form fades in; `LOCK_MS`), the browser unmounts
   once both the logout request and `LOCK_MS` are done; `LOGGED_OUT_EVENT`s are ignored meanwhile.
 - `App.jsx` (browser) — three columns (a fourth while Settings is open); the selection is in the URL
-  (`?project=<key>&c=<id>`, `&new=1` for the new-conversation page).
+  (`?project=<key>&c=<id>`, `&new=1` for the new-conversation page; the second column's other
+  views `&view=cron|memory|skills&item=<id>`, a cron run `&run=<id>`). `/api/features` is asked
+  once per mount (= login); `lib/views.js` `viewsFor` hides a package's view when it isn't
+  installed and `viewOf` falls back to sessions. `components/ColumnHead.jsx`: the column header
+  ("<project> · <view>") and `ViewTabs` (icon row; the selected view shows label + count).
+  `Cron.jsx`, `Memory.jsx`, `Skills.jsx`: list + main view each; a cron run's transcript uses
+  `ConversationView`'s exported `Transcript` (read-only, no composer). `e2e/views.spec.js`
+  covers them over `makeExtras` fixtures.
   `useFetch` aborts stale loads; its `poll(data)` option reloads quietly (no spinner, errors
   keep the data, paused while hidden): both lists use `listPollDelay` (4 s while something is
   running/active, else 15 s). `components/Running.jsx`: `RunningBar` (WinUI indeterminate

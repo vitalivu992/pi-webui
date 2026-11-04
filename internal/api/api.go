@@ -3,6 +3,8 @@
 //	GET /api/projects                         every project, newest activity first
 //	GET /api/conversations?project=<key>      one project's conversation summaries
 //	GET /api/conversations/{id}               one conversation in full (ETag / 304)
+//
+// and the memory, cron and skills views (extras.go).
 package api
 
 import (
@@ -15,9 +17,11 @@ import (
 	"pi-webui/internal/catalog"
 )
 
-// Handler serves the catalog.
+// Handler serves the catalog, and the views beside it (extras.go).
 type Handler struct {
 	Catalog *catalog.Catalog
+	PiDir   string // ~/.pi
+	Home    string // ~ (for ~/.agents)
 }
 
 // Register adds the routes to mux.
@@ -28,6 +32,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/projects", h.projects)
 	mux.HandleFunc("GET /api/conversations", h.conversations)
 	mux.HandleFunc("GET /api/conversations/{id}", h.conversation)
+	h.registerExtras(mux)
 }
 
 func (h *Handler) projects(w http.ResponseWriter, r *http.Request) {

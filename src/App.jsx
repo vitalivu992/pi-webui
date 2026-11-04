@@ -3,7 +3,11 @@ import { BrowserRouter, Route, Routes, useSearchParams } from "react-router"
 import {
   LOGGED_OUT_EVENT,
   fetchConversations,
+  fetchCronTasks,
+  fetchFeatures,
+  fetchMemory,
   fetchProjects,
+  fetchSkills,
   fetchSession,
   logout,
 } from "./lib/api.js"
@@ -11,9 +15,14 @@ import { readPrefs, writePref } from "./lib/prefs.js"
 import { useFetch } from "./hooks/useFetch.js"
 import { useLiveConversation } from "./hooks/useLiveConversation.js"
 import { listPollDelay } from "./lib/live.js"
+import { VIEWS, viewOf, viewsFor } from "./lib/views.js"
 import { ProjectsPanel, isMissing } from "./components/ProjectsPanel.jsx"
 import { ConversationList } from "./components/ConversationList.jsx"
 import { ConversationView } from "./components/ConversationView.jsx"
+import { ViewTabs } from "./components/ColumnHead.jsx"
+import { CronList, CronView } from "./components/Cron.jsx"
+import { MemoryList, MemoryView } from "./components/Memory.jsx"
+import { SkillList, SkillView } from "./components/Skills.jsx"
 import { LOCK_MS, LoginScreen, prefersReducedMotion } from "./components/LoginScreen.jsx"
 import { ShellPanel, ShellProvider, useShells } from "./components/Shells.jsx"
 import { NewConversation } from "./components/NewConversation.jsx"
@@ -26,7 +35,10 @@ export const APP_NAME = "pi WebUI"
  * The browser: projects | conversations | conversation (or a new one) |
  * settings when open. The selection lives in the URL
  * (`?project=<key>&c=<id>`, `&new=1` for a new conversation), so a
- * conversation can be linked to and the back button works.
+ * conversation can be linked to and the back button works. The second
+ * column's other views (`&view=cron|memory|skills&item=<id>`, a cron run
+ * `&run=<id>`) list what pi-hermes-memory, agents-cron and pi's skills hold
+ * for the project; the packages' views show only when pi has them installed.
  */
 function Browser({ user, onLogout }) {
   const { openShell, setError: setShellError } = useShells()
@@ -35,10 +47,19 @@ function Browser({ user, onLogout }) {
   const projectKey = params.get("project") || ""
   const id = params.get("c") || ""
   const creating = Boolean(params.get("new"))
+  const item = params.get("item") || ""
+  const runId = params.get("run") || ""
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(() => Boolean(readPrefs().projectsCollapsed))
   const [projectsReload, setProjectsReload] = useState(0)
   const [convsReload, setConvsReload] = useState(0)
+  const [viewReload, setViewReload] = useState(0)
+
+  // Asked once per login: which of the pi packages with a view pi has installed.
+  const features = useFetch((signal) => fetchFeatures({ signal }), [])
+  const requested = params.get("view") || ""
+  const view = features.loading ? requested || "sessions" : viewOf(requested, features.data)
+  const viewMeta = VIEWS.find((v) => v.id === view)
 
   // Both lists reload quietly, so the projects and conversations an agent is working on stay marked.
   const projects = useFetch((signal) => fetchProjects({ signal }), [projectsReload], {
@@ -48,6 +69,10 @@ function Browser({ user, onLogout }) {
     enabled: Boolean(projectKey),
     poll: (list) => listPollDelay(list?.some((c) => c.active)),
   })
+  const listed = (name) => ({ enabled: Boolean(projectKey) && view === name, poll: () => listPollDelay(false) })
+  const cronTasks = useFetch((signal) => fetchCronTasks(projectKey, { signal }), [projectKey, viewReload], listed("cron"))
+  const memory = useFetch((signal) => fetchMemory(projectKey, { signal }), [projectKey, viewReload], listed("memory"))
+  const skills = useFetch((signal) => fetchSkills(projectKey, { signal }), [projectKey, viewReload], listed("skills"))
   const run = runs.runFor(id)
   const conversation = useLiveConversation(id, { running: Boolean(run?.running) })
 
@@ -67,7 +92,14 @@ function Browser({ user, onLogout }) {
     document.title = title ? `${title} · ${APP_NAME}` : APP_NAME
   }, [conversation.data?.title, project?.name])
 
-  const selectProject = useCallback((key) => setParams({ project: key }), [setParams])
+  // Another project keeps the view.
+  const selectProject = useCallback((key) => setParams({ project: key, ...(view !== "sessions" ? { view } : {}) }), [setParams, view])
+  const selectView = useCallback((v) => setParams({ project: projectKey, ...(v !== "sessions" ? { view: v } : {}) }), [setParams, projectKey])
+  const selectItem = useCallback((key) => setParams({ project: projectKey, view, item: key }), [setParams, projectKey, view])
+  const selectRun = useCallback(
+    (key) => setParams({ project: projectKey, view: "cron", item, ...(key ? { run: key } : {}) }),
+    [setParams, projectKey, item]
+  )
   const selectConversation = useCallback((key) => setParams({ project: projectKey, c: key }), [setParams, projectKey])
   const newConversation = useCallback(() => setParams({ project: projectKey, new: "1" }), [setParams, projectKey])
   const conversationStarted = useCallback(
@@ -85,6 +117,15 @@ function Browser({ user, onLogout }) {
     })
   }
 
+  const counts = {
+    sessions: conversations.data?.length,
+    cron: cronTasks.data?.length,
+    memory: memory.data?.stores.reduce((n, st) => n + st.entries.length, 0),
+    skills: skills.data?.length,
+  }
+  const tabs = <ViewTabs views={viewsFor(features.data)} view={viewMeta} count={counts[view]} onChange={selectView} />
+  const column = { project, view: viewMeta, tabs, selectedId: item, onSelect: selectItem, onRefresh: () => setViewReload((n) => n + 1) }
+
   return (
     <div className={`pw-app${collapsed ? " is-collapsed" : ""}${settingsOpen ? " has-settings" : ""}`}>
       <ProjectsPanel
@@ -101,20 +142,36 @@ function Browser({ user, onLogout }) {
         onOpenSettings={openSettings}
         onOpenShell={(p) => openShell({ cwd: p.path }).catch(setShellError)}
       />
-      <ConversationList
-        key={projectKey}
-        project={project}
-        conversations={conversations.data}
-        loading={conversations.loading}
-        error={conversations.error}
-        selectedId={creating ? "" : id}
-        onSelect={selectConversation}
-        onRefresh={() => setConvsReload((n) => n + 1)}
-        onNew={newConversation}
-        creating={creating}
-      />
+      {!project || view === "sessions" ? (
+        <ConversationList
+          key={projectKey}
+          project={project}
+          view={viewMeta}
+          tabs={tabs}
+          conversations={conversations.data}
+          loading={conversations.loading}
+          error={conversations.error}
+          selectedId={creating ? "" : id}
+          onSelect={selectConversation}
+          onRefresh={() => setConvsReload((n) => n + 1)}
+          onNew={newConversation}
+          creating={creating}
+        />
+      ) : view === "cron" ? (
+        <CronList key={projectKey} {...column} tasks={cronTasks.data} loading={cronTasks.loading} error={cronTasks.error} />
+      ) : view === "memory" ? (
+        <MemoryList {...column} memory={memory.data} loading={memory.loading} error={memory.error} />
+      ) : (
+        <SkillList key={projectKey} {...column} skills={skills.data} loading={skills.loading} error={skills.error} />
+      )}
       <main className="pw-main">
-        {creating ? (
+        {view === "cron" ? (
+          <CronView taskId={item} runId={runId} onSelectRun={selectRun} />
+        ) : view === "memory" ? (
+          <MemoryView key={item} store={memory.data?.stores.find((st) => st.id === item)} loading={memory.loading} />
+        ) : view === "skills" ? (
+          <SkillView name={item} projectKey={projectKey} />
+        ) : creating ? (
           <NewConversation
             project={project}
             onStarted={conversationStarted}

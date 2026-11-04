@@ -837,6 +837,83 @@ h6,
   text-align: left;
 }
 
+/* "pi-webui · Cron jobs": the project, then the view the column shows. */
+.pw-convs__heading {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pw-convs__view {
+  flex-shrink: 0;
+  color: var(--fgColor-accent, #0969da);
+  font-family: var(--pw-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.pw-convs__view::before {
+  content: "·";
+  margin-right: 6px;
+  color: var(--fgColor-muted, #59636e);
+}
+
+/* The view icons (components/ColumnHead.jsx): one line; only the selected view spells out
+   its name and count. */
+.pw-segmented {
+  display: flex;
+  gap: 2px;
+  margin: 0 12px 8px;
+  padding: 2px;
+  border: 1px solid var(--pw-control-border);
+  background: var(--pw-control-bg);
+}
+
+.pw-segmented button {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--fgColor-muted, #59636e);
+  font-family: var(--pw-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pw-segmented button:hover {
+  background: var(--pw-btn-hover-bg);
+  color: var(--fgColor-default, #1f2328);
+}
+
+.pw-segmented button.is-active {
+  flex-grow: 3;
+  background: var(--bgColor-default, #fff);
+  color: var(--fgColor-default, #1f2328);
+  box-shadow: inset 0 -2px 0 var(--pw-active-bar);
+}
+
+.pw-segmented button.is-icon {
+  flex: 0 0 auto;
+  padding: 4px 12px;
+}
+
+.pw-segmented .pw-count {
+  min-width: 0;
+  line-height: 16px;
+}
+
 .pw-conv {
   gap: 5px;
   padding: 9px 10px;
@@ -3121,3 +3198,214 @@ body.is-resizing-shell {
   padding: 6px;
 }
 
+
+/* ---------- cron, memory and skills views (Cron.jsx, Memory.jsx, Skills.jsx) ---------- */
+
+.pw-conv.is-disabled .pw-conv__title {
+  color: var(--fgColor-muted, #59636e);
+}
+
+.pw-conv__icon {
+  flex-shrink: 0;
+  width: 16px;
+  margin-top: 2px;
+  color: var(--fgColor-muted, #59636e);
+  font-size: 12px;
+  text-align: center;
+}
+
+.pw-conv__desc {
+  color: var(--fgColor-muted, #59636e);
+  font-size: 12px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pw-note {
+  margin: 0 12px 8px;
+  color: var(--fgColor-muted, #59636e);
+  font-size: 12px;
+}
+
+.pw-run-status {
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+.pw-tone--success {
+  color: var(--fgColor-success, #1a7f37);
+}
+
+.pw-tone--danger {
+  color: var(--fgColor-danger, #d1242f);
+}
+
+.pw-tone--attention {
+  color: var(--fgColor-attention, #9a6700);
+}
+
+.pw-tone--accent {
+  color: var(--fgColor-accent, #0969da);
+}
+
+.pw-tone--muted {
+  color: var(--fgColor-muted, #59636e);
+}
+
+.pw-source {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border: 1px solid var(--borderColor-muted, #d8dee4);
+  color: var(--fgColor-muted, #59636e);
+  font-family: var(--pw-mono);
+  font-size: 10px;
+  line-height: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pw-source--project {
+  color: var(--fgColor-accent, #0969da);
+}
+
+.pw-source--memory {
+  color: var(--pw-rust);
+}
+
+/* A document in the main column: a task, a run, a memory store, a skill. */
+.pw-doc {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 20px 24px 32px;
+}
+
+.pw-doc__heading {
+  margin: 20px 0 8px;
+  font-size: 17px;
+  font-style: italic;
+  font-weight: 500;
+}
+
+.pw-doc__heading:first-child {
+  margin-top: 0;
+}
+
+.pw-doc__prompt {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.pw-doc__note {
+  color: var(--fgColor-muted, #59636e);
+  font-size: 12px;
+}
+
+.pw-doc__lead {
+  margin: 0 0 16px;
+  color: var(--fgColor-muted, #59636e);
+  font-size: 15px;
+}
+
+.pw-search--doc {
+  margin: 0 0 12px;
+}
+
+.pw-runs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--borderColor-muted, #d8dee4);
+}
+
+.pw-runs li + li {
+  border-top: 1px solid var(--borderColor-muted, #d8dee4);
+}
+
+.pw-runs__row {
+  display: grid;
+  grid-template-columns: 16px 110px 76px 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  background: var(--bgColor-default, #fff);
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pw-runs__row:hover {
+  background: var(--pw-active-bg);
+}
+
+.pw-runs__row .pw-run-status {
+  margin: 0;
+}
+
+.pw-runs__trigger,
+.pw-runs__took {
+  color: var(--fgColor-muted, #59636e);
+  font-family: var(--pw-mono);
+  font-size: 11px;
+}
+
+.pw-runs__summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pw-memory {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pw-memory__entry {
+  padding: 10px 14px;
+  border: 1px solid var(--borderColor-muted, #d8dee4);
+  background: var(--bgColor-default, #fff);
+}
+
+.pw-memory__tags {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.pw-memory__cat--failure,
+.pw-memory__cat--correction {
+  color: var(--fgColor-danger, #d1242f);
+}
+
+.pw-memory__cat--insight,
+.pw-memory__cat--convention {
+  color: var(--fgColor-success, #1a7f37);
+}
+
+.pw-memory__text.markdown-body {
+  background: transparent;
+  font-size: 14px;
+}
+
+.pw-memory__dates {
+  margin-top: 6px;
+  color: var(--fgColor-muted, #59636e);
+  font-family: var(--pw-mono);
+  font-size: 11px;
+}
+
+/* A cron run's transcript right under its "Transcript" heading. */
+.pw-doc + .pw-chat {
+  padding-top: 0;
+}

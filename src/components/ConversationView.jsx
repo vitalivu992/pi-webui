@@ -260,6 +260,20 @@ function Header({ conversation, working, expandAll, onExpandAll }) {
   )
 }
 
+/** A conversation's turns and events; `live` marks the last turn as being worked on. */
+export function Transcript({ entries, expandAll, live = false }) {
+  return entries.map((entry, i) =>
+    entry.kind === "event" ? (
+      <EventRow key={i} entry={entry} />
+    ) : (
+      <div key={i} className="pw-turn">
+        <UserMessage entry={entry} />
+        <AssistantMessage entry={entry} index={i} expandAll={expandAll} live={live && i === entries.length - 1} />
+      </div>
+    )
+  )
+}
+
 /** Why a prompt can't be sent to the conversation from here, or "". */
 function composerBlocked(c, ours) {
   if (isWorking(c) && !ours) return "The agent is working on this conversation elsewhere: wait for it to finish."
@@ -329,21 +343,7 @@ export function ConversationView({ conversation, loading, error, run = null, sen
       <Header conversation={c} working={working} expandAll={expandAll} onExpandAll={setExpandAll} />
       <div className="pw-view__scroll" id="pwChat" ref={scrollRef} onScroll={(e) => (follow.current = atBottom(e.currentTarget))}>
         <div className="pw-chat">
-          {c.entries.map((entry, i) =>
-            entry.kind === "event" ? (
-              <EventRow key={i} entry={entry} />
-            ) : (
-              <div key={i} className="pw-turn">
-                <UserMessage entry={entry} />
-                <AssistantMessage
-                  entry={entry}
-                  index={i}
-                  expandAll={expandAll}
-                  live={working && !pending && i === c.entries.length - 1}
-                />
-              </div>
-            )
-          )}
+          <Transcript entries={c.entries} expandAll={expandAll} live={working && !pending} />
           {!c.entries.length && !pending ? <p className="pw-empty pw-empty--center">This conversation has no messages.</p> : null}
           {pending ? <PendingMessage run={run} /> : null}
           {failed ? <RunError run={failed} onDismiss={() => onDismissRun?.(failed.id)} /> : null}
