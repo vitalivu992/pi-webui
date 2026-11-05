@@ -28,17 +28,18 @@ import { ShellPanel, ShellProvider, useShells } from "./components/Shells.jsx"
 import { NewConversation } from "./components/NewConversation.jsx"
 import { RunsProvider, useRuns } from "./components/Runs.jsx"
 import { SettingsPanel } from "./components/Settings.jsx"
+import { WorkspacePanel } from "./components/WorkspacePanel.jsx"
 
 export const APP_NAME = "pi WebUI"
 
 /**
  * The browser: projects | conversations | conversation (or a new one) |
- * settings when open. The selection lives in the URL
+ * settings when open | the project's files and git status (a rail when collapsed). The selection lives in the URL
  * (`?project=<key>&c=<id>`, `&new=1` for a new conversation), so a
  * conversation can be linked to and the back button works. The second
  * column's other views (`&view=cron|memory|setup&item=<id>`, a cron run
- * `&run=<id>`) list what pi-hermes-memory, agents-cron and pi's setup hold
- * for the project; the packages' views show only when pi has them installed.
+ * `&run=<id>`) list what pi-hermes-memory and agents-cron hold for the project
+ * and what pi loads there; the packages' views show only when pi has them installed.
  */
 function Browser({ user, onLogout }) {
   const { openShell, setError: setShellError } = useShells()
@@ -51,6 +52,7 @@ function Browser({ user, onLogout }) {
   const runId = params.get("run") || ""
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(() => Boolean(readPrefs().projectsCollapsed))
+  const [sideCollapsed, setSideCollapsed] = useState(() => readPrefs().workspaceCollapsed !== false)
   const [projectsReload, setProjectsReload] = useState(0)
   const [convsReload, setConvsReload] = useState(0)
   const [viewReload, setViewReload] = useState(0)
@@ -119,6 +121,12 @@ function Browser({ user, onLogout }) {
       return !v
     })
   }
+  const toggleSide = () => {
+    setSideCollapsed((v) => {
+      writePref("workspaceCollapsed", !v)
+      return !v
+    })
+  }
 
   const counts = {
     sessions: conversations.data?.length,
@@ -130,7 +138,7 @@ function Browser({ user, onLogout }) {
   const column = { project, view: viewMeta, tabs, selectedId: item, onSelect: selectItem, onRefresh: () => setViewReload((n) => n + 1) }
 
   return (
-    <div className={`pw-app${collapsed ? " is-collapsed" : ""}${settingsOpen ? " has-settings" : ""}`}>
+    <div className={`pw-app${collapsed ? " is-collapsed" : ""}${sideCollapsed ? "" : " has-side"}${settingsOpen ? " has-settings" : ""}`}>
       <ProjectsPanel
         projects={projects.data}
         loading={projects.loading}
@@ -197,6 +205,7 @@ function Browser({ user, onLogout }) {
       {settingsOpen ? (
         <SettingsPanel onClose={() => setSettingsOpen(false)} cwd={project?.exists ? project.path : ""} />
       ) : null}
+      <WorkspacePanel project={project} collapsed={sideCollapsed} onToggle={toggleSide} />
     </div>
   )
 }

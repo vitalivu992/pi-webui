@@ -1,8 +1,10 @@
 // Writes a fake home for e2e: one project with three pi sessions, an older session in a folder
 // that no longer exists (hidden by default), a pi skill and prompt template, a fake `pi` CLI
 // in bin/ (the server's LAUNCH_PATH) for the prompts sent from the UI and the setup view, and
-// the stores of the pi-hermes-memory and agents-cron packages (installed per pi's settings).
+// the stores of the pi-hermes-memory and agents-cron packages (installed per pi's settings). The
+// project is a git repository with staged, changed and untracked files (the workspace panel).
 // Run by playwright.config.js before it starts the server.
+import { execFileSync } from "node:child_process"
 import { chmodSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 
@@ -303,8 +305,33 @@ export function makeExtras() {
   ]))
 }
 
+/**
+ * The demo project as a git repository: main.go staged (+3 −1) and changed again (+1),
+ * notes.txt renamed to docs/notes.txt (staged), old.txt deleted, todo.md untracked (2 lines).
+ */
+export function makeRepo() {
+  // No global or system config: the user's signing, hooks or diff settings stay out.
+  const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" }
+  const git = (...args) => execFileSync("git", ["-c", "user.name=e2e", "-c", "user.email=e2e@example.com", ...args], { cwd: PROJECT, env })
+  text(join(PROJECT, ".gitignore"), ".agents/\n")
+  text(join(PROJECT, "main.go"), "package main\n\nfunc main() {}\n")
+  text(join(PROJECT, "notes.txt"), "keep\n")
+  text(join(PROJECT, "old.txt"), "one\ntwo\nthree\n")
+  git("init", "-q", "-b", "main")
+  git("add", ".")
+  git("commit", "-q", "-m", "init")
+  text(join(PROJECT, "main.go"), "package main\n\nimport \"net/http\"\n\nfunc main() { http.ListenAndServe() }\n")
+  git("add", "main.go")
+  text(join(PROJECT, "main.go"), "package main\n\nimport \"net/http\"\n\nfunc main() { http.ListenAndServe() }\n// health\n")
+  mkdirSync(join(PROJECT, "docs"), { recursive: true })
+  git("mv", "notes.txt", "docs/notes.txt")
+  rmSync(join(PROJECT, "old.txt"))
+  text(join(PROJECT, "todo.md"), "- health\n- tests\n")
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   makeFixtures()
   makeTools()
   makeExtras()
+  makeRepo()
 }

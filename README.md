@@ -103,6 +103,13 @@ on start also restores this cookie.
     homepage, what it ships and its README; an extension its package's README. pi's own
     package manager answers (see below); without it only the skills and prompts in pi's
     folders are listed.
+- **Workspace** (right, collapsed by default to a rail of two icons; the git icon counts the
+  changed files): **Files** is the project's folder as a tree (folders open on click; `.git`
+  hidden, symlinks listed but not followed); **Git** is the repository's branch (↑ahead ↓behind
+  its upstream) and its files in VS Code's groups, **Merge changes**, **Staged changes** and
+  **Changes**, each with its letter (U untracked, A added, M modified, D deleted, R renamed,
+  C copied, T type changed, ! conflict) and the lines it adds and removes (`+12 −3`; an
+  untracked file's lines all count as added). Refreshed every 4 s while the Git tab is open.
 - **Conversation**: header with the model, start time, session id; **Show work** expands every
   answer's work details (pi's `edit` calls show each replacement as removed and added text);
   **Resume** opens `cd <cwd> && pi --session <id>` with a copy button and **Run in shell**
@@ -180,6 +187,8 @@ The views beside the conversations read (never write):
 | Memory | `~/.pi/agent/pi-hermes-memory/{MEMORY,USER,failures,STANDING}.md`; the project's `~/.pi/agent/projects-memory/<name>/{MEMORY,failures}.md` (name: the git repository's folder, as the package picks it). Entries are `§`-separated, with `<!-- created=…, last=…, project64=… -->`. The SQLite index (`sessions.db`) isn't read |
 | Cron jobs | `~/.agents/cron/tasks.json` (tasks bound to the project's folder); `<project>/.agents/cron/runs/<run>.json`, `reports/<task>/<run>.md` and the transcript `sessions/<task>/<run>.jsonl` (or pi's session store) |
 | Setup | what pi's package manager (`DefaultPackageManager.resolve`, imported from pi's own npm package next to the `pi` executable and run with node, offline, nothing installed and no extension run) reports for the project; skills' and prompts' frontmatter and markdown; packages' `package.json` and `README.md`; pi-hermes-memory's `skills/` (global and the project's). Cached 30 s per project; the refresh button asks again |
+| Files | one folder of the project at a time (only listed projects' folders) |
+| Git | `git status --porcelain=v2` and `git diff [--cached] --numstat` in the project's repository, run with `--no-optional-locks` so it never takes the index lock |
 
 ## Develop
 

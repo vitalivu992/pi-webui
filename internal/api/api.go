@@ -4,7 +4,8 @@
 //	GET /api/conversations?project=<key>      one project's conversation summaries
 //	GET /api/conversations/{id}               one conversation in full (ETag / 304)
 //
-// the memory, cron and setup views (extras.go).
+// the memory, cron and setup views (extras.go) and the project's files and
+// git status (workspace.go).
 package api
 
 import (
@@ -18,7 +19,7 @@ import (
 	"pi-webui/internal/setup"
 )
 
-// Handler serves the catalog, and the views beside it (extras.go).
+// Handler serves the catalog, and the views beside it (extras.go, workspace.go).
 type Handler struct {
 	Catalog *catalog.Catalog
 	PiDir   string // ~/.pi
@@ -35,6 +36,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/conversations", h.conversations)
 	mux.HandleFunc("GET /api/conversations/{id}", h.conversation)
 	h.registerExtras(mux)
+	h.registerWorkspace(mux)
 }
 
 func (h *Handler) projects(w http.ResponseWriter, r *http.Request) {

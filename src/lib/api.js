@@ -170,3 +170,17 @@ export async function fetchSetupItem(id, projectKey, opts) {
   const q = new URLSearchParams({ project: projectKey })
   return getJSON(`/api/setup/${encodeURIComponent(id)}?${q}`, opts)
 }
+
+// The right-hand panel: the project's folder and its git status (internal/workspace).
+
+/** `{ entries: [{ name, kind: dir|file|link, size? }], truncated }` of one folder ("" = the project's root). */
+export async function fetchFiles(projectKey, path, opts) {
+  const q = new URLSearchParams({ project: projectKey, path })
+  return getJSON(`/api/files?${q}`, opts)
+}
+
+/** `{ repo, root, branch, commit, upstream, ahead, behind, merge, staged, changes }`. */
+export async function fetchGit(projectKey, opts) {
+  const q = new URLSearchParams({ project: projectKey })
+  return getJSON(`/api/git?${q}`, opts)
+}

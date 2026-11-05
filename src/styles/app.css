@@ -10,6 +10,7 @@
 :root {
   --pw-projects-w: 272px;
   --pw-rail-w: 56px;
+  --pw-side-w: 300px;
   --pw-convs-w: 360px;
   --pw-radius: 8px;
 
@@ -246,15 +247,23 @@ h6,
 
 /* ---------- layout ---------- */
 
+/* The outer columns are variables: the projects (or their rail) on the left, the workspace
+   panel (or its rail) on the right, settings between the conversation and the workspace. */
 .pw-app {
+  --pw-left-w: var(--pw-projects-w);
+  --pw-right-w: var(--pw-rail-w);
   display: grid;
-  grid-template-columns: var(--pw-projects-w) var(--pw-convs-w) minmax(0, 1fr);
+  grid-template-columns: var(--pw-left-w) var(--pw-convs-w) minmax(0, 1fr) var(--pw-right-w);
   height: 100vh;
   overflow: hidden;
 }
 
 .pw-app.is-collapsed {
-  grid-template-columns: var(--pw-rail-w) var(--pw-convs-w) minmax(0, 1fr);
+  --pw-left-w: var(--pw-rail-w);
+}
+
+.pw-app.has-side {
+  --pw-right-w: var(--pw-side-w);
 }
 
 .pw-projects,
@@ -2505,11 +2514,7 @@ body.is-resizing-shell {
 }
 
 .pw-app.has-settings {
-  grid-template-columns: var(--pw-projects-w) var(--pw-convs-w) minmax(0, 1fr) var(--pw-settings-w);
-}
-
-.pw-app.is-collapsed.has-settings {
-  grid-template-columns: var(--pw-rail-w) var(--pw-convs-w) minmax(0, 1fr) var(--pw-settings-w);
+  grid-template-columns: var(--pw-left-w) var(--pw-convs-w) minmax(0, 1fr) var(--pw-settings-w) var(--pw-right-w);
 }
 
 .pw-visually-hidden {
@@ -3465,4 +3470,269 @@ body.is-resizing-shell {
 /* A cron run's transcript right under its "Transcript" heading. */
 .pw-doc + .pw-chat {
   padding-top: 0;
+}
+
+/* ---------- workspace panel: the project's files and git status ---------- */
+
+.pw-side {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-left: 1px solid var(--borderColor-default, #d0d7de);
+  background: var(--bgColor-inset, #f6f8fa);
+}
+
+.pw-side--collapsed {
+  align-items: center;
+  padding: 10px 0 6px;
+  gap: 6px;
+}
+
+.pw-side__rail-btn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  color: var(--fgColor-muted, #59636e);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.pw-side__rail-btn:hover {
+  background: var(--bgColor-neutral-muted, rgba(175, 184, 193, 0.2));
+  color: var(--fgColor-default, #1f2328);
+}
+
+.pw-side__badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--pw-tidal);
+  color: var(--fgColor-onEmphasis, #fff);
+  font-family: var(--pw-mono);
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.pw-segmented--side {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.pw-side__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 0 12px;
+  font-size: 13px;
+}
+
+/* the file tree */
+
+.pw-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pw-tree__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 3px 12px 3px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--fgColor-default, #1f2328);
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+}
+
+button.pw-tree__row {
+  cursor: pointer;
+}
+
+.pw-tree__row:hover {
+  background: var(--pw-btn-hover-bg);
+}
+
+.pw-tree__row > i {
+  flex: none;
+  width: 14px;
+  text-align: center;
+  color: var(--fgColor-muted, #59636e);
+}
+
+.pw-tree__row--dir > .fa-folder,
+.pw-tree__row--dir > .fa-folder-open {
+  color: var(--pw-tidal);
+}
+
+.pw-tree__row > .pw-tree__chev {
+  flex: none;
+  width: 10px;
+  font-size: 9px;
+}
+
+.pw-tree__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pw-tree__note {
+  padding-top: 3px;
+  padding-bottom: 3px;
+  font-size: 12px;
+}
+
+/* git status, after VS Code's Source Control */
+
+.pw-git {
+  --pw-git-added: var(--pw-success);
+  --pw-git-deleted: var(--pw-danger);
+  --pw-git-modified: var(--pw-attention);
+  --pw-git-renamed: var(--pw-tidal);
+  --pw-git-conflict: var(--pw-rust);
+}
+
+.pw-git__branch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 4px 12px 8px;
+  color: var(--fgColor-muted, #59636e);
+  font-family: var(--pw-mono);
+  font-size: 12px;
+}
+
+.pw-git__head {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fgColor-default, #1f2328);
+}
+
+.pw-git__group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 12px 4px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--fgColor-muted, #59636e);
+  font-family: var(--pw-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.pw-git__group-head:hover {
+  color: var(--fgColor-default, #1f2328);
+}
+
+.pw-git__group-head > i {
+  width: 10px;
+  font-size: 9px;
+}
+
+.pw-git__group-head .pw-count {
+  margin-left: auto;
+}
+
+.pw-git__files {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+}
+
+.pw-git__file {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 12px 3px 24px;
+  white-space: nowrap;
+}
+
+.pw-git__file:hover {
+  background: var(--pw-btn-hover-bg);
+}
+
+.pw-git__name {
+  flex: none;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--pw-git-tone);
+}
+
+.pw-git__file.is-gone .pw-git__name {
+  text-decoration: line-through;
+}
+
+.pw-git__dir {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fgColor-muted, #59636e);
+  font-size: 12px;
+}
+
+.pw-git__lines {
+  display: inline-flex;
+  gap: 4px;
+  font-family: var(--pw-mono);
+  font-size: 11px;
+}
+
+.pw-git__add {
+  color: var(--pw-git-added);
+}
+
+.pw-git__del {
+  color: var(--pw-git-deleted);
+}
+
+.pw-git__bin {
+  color: var(--fgColor-muted, #59636e);
+}
+
+.pw-git__status {
+  flex: none;
+  width: 12px;
+  text-align: center;
+  font-family: var(--pw-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--pw-git-tone);
+}
+
+.pw-git__file.is-added {
+  --pw-git-tone: var(--pw-git-added);
+}
+
+.pw-git__file.is-deleted {
+  --pw-git-tone: var(--pw-git-deleted);
+}
+
+.pw-git__file.is-modified {
+  --pw-git-tone: var(--pw-git-modified);
+}
+
+.pw-git__file.is-renamed {
+  --pw-git-tone: var(--pw-git-renamed);
+}
+
+.pw-git__file.is-conflict {
+  --pw-git-tone: var(--pw-git-conflict);
 }

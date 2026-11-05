@@ -10,7 +10,7 @@ make dev | make dev-web     # Go server on :8777 | Vite HMR on :5173 proxying /a
 make run                    # build, then bin/server in the foreground with .env applied
 make up|down|install|logs   # per-user service via ctl.sh: systemd user unit pi-webui (Linux),
                             # launchd agent dev.pi-webui (macOS), both generated with the checkout path
-go test ./...               # Go tests (parser, catalog, launch, runs, api, memory, cron, setup;
+go test ./...               # Go tests (parser, catalog, launch, runs, api, memory, cron, workspace, setup;
                             # setup runs node against a fake pi package, skipped without node)
 pnpm test:unit              # vitest (tests/*.test.mjs; JSX helpers import fine)
 pnpm test:e2e               # playwright: e2e/make-fixtures.mjs writes a fake home to .e2e-home/,
@@ -122,6 +122,14 @@ are read on request and summaries cached in memory by file size + mtime.
   extensions add at run time (`resources_discover`) aren't seen, except pi-hermes-memory's,
   read from its folders (`Setup.Add`). The e2e `bin/` doubles as a fake pi package
   (`FAKE_PI_API`) with node linked where pi's installer keeps it.
+- `internal/api/workspace.go` + `internal/workspace` — the right-hand panel, read-only, only for
+  a listed project whose folder exists (else 404): `GET /api/files?project=&path=` (one folder
+  through `os.OpenRoot`, so neither `..` nor a symlink leaves the project; dirs first, `.git`
+  hidden, symlinks are `link` and not expandable, `MaxEntries` cap) and `GET /api/git?project=`
+  (`rev-parse --show-toplevel`, `status --porcelain=v2 -z --branch --untracked-files=all`,
+  `diff [--cached] --numstat -z`; `--no-optional-locks`, 10 s timeout; paths from the repo
+  root; groups merge/staged/changes with VS Code's letters, untracked files' lines counted up
+  to 500 files of ≤1 MB; outside a repo `repo: false`).
 - `web/` — `go:embed` of `web/dist` + SPA fallback handler (404s unknown `/api/*` and `/health`).
 
 ### Frontend (`src/`)
@@ -172,6 +180,13 @@ are read on request and summaries cached in memory by file size + mtime.
   (`launchRequest` maps them onto a run request) and `hooks/useSettings.js` (same-tab event +
   `storage`); pi info, commands and models via `hooks/usePiData.js` (cached per page).
   `e2e/prompts.spec.js` has its own Playwright project and project folder, removed afterwards.
+- `components/WorkspacePanel.jsx` — the last grid column (`.pw-app` columns are the
+  `--pw-left-w` / `--pw-right-w` variables; `has-side` widens the right one, settings sit
+  between the conversation and it): collapsed (pref `workspaceCollapsed`, default) a rail of
+  the Files / Git icons with the changed-file count; open, the tab (pref `workspaceTab`) is a
+  lazy file tree (`Folder` fetches on open; reload refetches the open ones) or the git groups
+  (polled 4 s while shown, else 15 s for the badge). `lib/workspace.js` holds the pure helpers.
+  `e2e/workspace.spec.js` runs over `makeRepo` (the demo project as a git repo).
 - `components/Shells.jsx` — `ShellProvider` (shell list restored from `/api/shells`, active tab,
   open/minimized; `useShells().openShell({cwd, run})` from the project rows and the Resume
   popover) and `ShellPanel` (tab bar = status bar, drag-to-resize, height in prefs).
