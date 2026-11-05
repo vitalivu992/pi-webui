@@ -1,9 +1,9 @@
 // Writes a fake home for e2e: one project with three pi sessions, an older session in a folder
 // that no longer exists (hidden by default), a pi skill and prompt template, a fake `pi` CLI
-// in bin/ (the server's LAUNCH_PATH) for the prompts sent from the UI, and the stores of the
-// pi-hermes-memory and agents-cron packages (listed as installed in pi's settings).
+// in bin/ (the server's LAUNCH_PATH) for the prompts sent from the UI and the setup view, and
+// the stores of the pi-hermes-memory and agents-cron packages (installed per pi's settings).
 // Run by playwright.config.js before it starts the server.
-import { chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
+import { chmodSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 
 export const HOME = resolve(".e2e-home")
@@ -173,10 +173,67 @@ setTimeout(() => {
 }, 1500)
 `
 
+// pi's package API that internal/setup/resolve.mjs imports, answering from the fake home: the
+// packages in settings.json (installed when agent/npm/node_modules has them), their extensions and
+// skills folders, the builtin extensions, and pi's own skills and prompts folders.
+const FAKE_PI_API = `import { existsSync, readFileSync, readdirSync } from "node:fs"
+import { basename, dirname, join } from "node:path"
+const desc = (file) => (readFileSync(file, "utf8").match(/description: (.*)/) || [])[1] || ""
+export const SettingsManager = { create: (cwd, agentDir) => ({ cwd, agentDir }) }
+export class DefaultPackageManager {
+  constructor(o) { this.o = o }
+  packages() {
+    const { packages = [] } = JSON.parse(readFileSync(join(this.o.agentDir, "settings.json"), "utf8"))
+    return packages.map((source) => {
+      const dir = join(this.o.agentDir, "npm", "node_modules", source.slice(4).replace(/@[^@]*$/, ""))
+      return { source, scope: "user", filtered: false, installedPath: existsSync(dir) ? dir : undefined }
+    })
+  }
+  listConfiguredPackages() { return this.packages() }
+  async resolve() {
+    const out = { extensions: [], skills: [], prompts: [], themes: [], installFailures: [] }
+    for (const p of this.packages()) {
+      if (!p.installedPath) continue
+      const metadata = { source: p.source, scope: "user", origin: "package", packageRoot: p.installedPath }
+      const pi = JSON.parse(readFileSync(join(p.installedPath, "package.json"), "utf8")).pi || {}
+      for (const e of pi.extensions || []) out.extensions.push({ path: join(p.installedPath, e), enabled: true, metadata })
+      for (const d of pi.skills || []) out.skills.push({ path: join(p.installedPath, d), enabled: true, metadata })
+    }
+    for (const n of this.o.builtinExtensions) out.extensions.push({ path: "builtin:" + n, enabled: true, metadata: { source: "builtin", scope: "user", origin: "top-level" } })
+    const auto = { source: "auto", scope: "user", origin: "top-level" }
+    const skills = join(this.o.agentDir, "skills")
+    for (const d of existsSync(skills) ? readdirSync(skills) : []) out.skills.push({ path: join(skills, d, "SKILL.md"), enabled: true, metadata: auto })
+    const prompts = join(this.o.agentDir, "prompts")
+    for (const f of existsSync(prompts) ? readdirSync(prompts) : []) out.prompts.push({ path: join(prompts, f), enabled: true, metadata: auto })
+    return out
+  }
+}
+export function loadSkills({ skillPaths }) {
+  const files = skillPaths.flatMap((p) => (p.endsWith("SKILL.md") ? [p] : readdirSync(p).map((d) => join(p, d, "SKILL.md"))))
+  return { skills: files.map((f) => ({ name: basename(dirname(f)), description: desc(f), filePath: f, disableModelInvocation: false })) }
+}
+`
+
+const FAKE_PI_PROMPTS = `import { readFileSync } from "node:fs"
+import { basename } from "node:path"
+export function loadPromptTemplates({ promptPaths }) {
+  return { templates: promptPaths.map((f) => ({ name: basename(f, ".md"), description: (readFileSync(f, "utf8").match(/description: (.*)/) || [])[1] || "", filePath: f })) }
+}
+`
+
 export function makeTools() {
   mkdirSync(BIN, { recursive: true })
-  // The repo's package.json says "module"; the fake is CommonJS.
-  writeFileSync(join(BIN, "package.json"), '{"type":"commonjs"}\n')
+  // The repo's package.json says "module"; the fake is CommonJS. bin/ doubles as pi's package
+  // (its ESM API in dist/), and node is where pi's installer keeps it.
+  writeFileSync(join(BIN, "package.json"), '{"name":"@earendil-works/pi-coding-agent","version":"0.0.0-e2e","type":"commonjs"}\n')
+  text(join(BIN, "dist", "package.json"), '{"type":"module"}\n')
+  text(join(BIN, "dist", "index.js"), FAKE_PI_API)
+  text(join(BIN, "dist", "core", "prompt-templates.js"), FAKE_PI_PROMPTS)
+  text(join(BIN, "dist", "extensions", "index.js"), 'export const builtInExtensions = [{ name: "mcp" }]\n')
+  const node = join(HOME, ".local", "share", "pi-node", "current", "bin", "node")
+  mkdirSync(dirname(node), { recursive: true })
+  rmSync(node, { force: true })
+  symlinkSync(process.execPath, node)
   writeFileSync(join(BIN, "pi"), FAKE_PI)
   chmodSync(join(BIN, "pi"), 0o755)
   writeFileSync(PI_LOG, "")
@@ -206,6 +263,15 @@ export function makeExtras() {
     `[correction] Run \`go test\` before committing — Failed: committed a broken build <!-- created=2026-11-02, last=2026-11-02, project64=${demo64} -->\n§\n[failure] Elsewhere <!-- created=2026-11-02, last=2026-11-02 -->`
   )
   text(join(mem, "skills", "debug-go-tests", "SKILL.md"), "---\nname: debug-go-tests\ndescription: Find why a Go test fails\n---\n\n## Procedure\n\n1. Run `go test -run X -v`\n")
+  // Installed packages: agents-cron ships an extension and a skill; pi-extmgr isn't installed.
+  const cron = join(agent, "npm", "node_modules", "agents-cron")
+  text(join(cron, "package.json"), JSON.stringify({ name: "agents-cron", version: "0.16.1", description: "Cron-driven scheduled prompt tasks", pi: { extensions: ["./index.mjs"], skills: ["./skills"] } }))
+  text(join(cron, "README.md"), "# agents-cron\n\nSchedules prompts.\n")
+  text(join(cron, "index.mjs"), "export default () => {}\n")
+  text(join(cron, "skills", "scheduler", "SKILL.md"), "---\nname: scheduler\ndescription: Create cron-driven prompt tasks\n---\n\n## Schedule\n")
+  const hermes = join(agent, "npm", "node_modules", "pi-hermes-memory")
+  text(join(hermes, "package.json"), JSON.stringify({ name: "pi-hermes-memory", version: "0.10.0", description: "Persistent memory", pi: { extensions: ["./src/index.ts"] } }))
+  text(join(hermes, "src", "index.ts"), "export default () => {}\n")
   text(join(agent, "projects-memory", "demo_app", "MEMORY.md"), "The health endpoint lives in `main.go` <!-- created=2026-11-03, last=2026-11-03 -->")
 
   const task = {

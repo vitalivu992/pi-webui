@@ -7,8 +7,8 @@ import {
   fetchFeatures,
   fetchMemory,
   fetchProjects,
-  fetchSkills,
   fetchSession,
+  fetchSetup,
   logout,
 } from "./lib/api.js"
 import { readPrefs, writePref } from "./lib/prefs.js"
@@ -22,7 +22,7 @@ import { ConversationView } from "./components/ConversationView.jsx"
 import { ViewTabs } from "./components/ColumnHead.jsx"
 import { CronList, CronView } from "./components/Cron.jsx"
 import { MemoryList, MemoryView } from "./components/Memory.jsx"
-import { SkillList, SkillView } from "./components/Skills.jsx"
+import { SetupList, SetupView } from "./components/Setup.jsx"
 import { LOCK_MS, LoginScreen, prefersReducedMotion } from "./components/LoginScreen.jsx"
 import { ShellPanel, ShellProvider, useShells } from "./components/Shells.jsx"
 import { NewConversation } from "./components/NewConversation.jsx"
@@ -36,8 +36,8 @@ export const APP_NAME = "pi WebUI"
  * settings when open. The selection lives in the URL
  * (`?project=<key>&c=<id>`, `&new=1` for a new conversation), so a
  * conversation can be linked to and the back button works. The second
- * column's other views (`&view=cron|memory|skills&item=<id>`, a cron run
- * `&run=<id>`) list what pi-hermes-memory, agents-cron and pi's skills hold
+ * column's other views (`&view=cron|memory|setup&item=<id>`, a cron run
+ * `&run=<id>`) list what pi-hermes-memory, agents-cron and pi's setup hold
  * for the project; the packages' views show only when pi has them installed.
  */
 function Browser({ user, onLogout }) {
@@ -72,7 +72,10 @@ function Browser({ user, onLogout }) {
   const listed = (name) => ({ enabled: Boolean(projectKey) && view === name, poll: () => listPollDelay(false) })
   const cronTasks = useFetch((signal) => fetchCronTasks(projectKey, { signal }), [projectKey, viewReload], listed("cron"))
   const memory = useFetch((signal) => fetchMemory(projectKey, { signal }), [projectKey, viewReload], listed("memory"))
-  const skills = useFetch((signal) => fetchSkills(projectKey, { signal }), [projectKey, viewReload], listed("skills"))
+  // Not polled: it changes when pi's settings do. The refresh button skips the server's cache.
+  const setup = useFetch((signal) => fetchSetup(projectKey, { signal, refresh: viewReload > 0 }), [projectKey, viewReload], {
+    enabled: Boolean(projectKey) && view === "setup",
+  })
   const run = runs.runFor(id)
   const conversation = useLiveConversation(id, { running: Boolean(run?.running) })
 
@@ -121,7 +124,7 @@ function Browser({ user, onLogout }) {
     sessions: conversations.data?.length,
     cron: cronTasks.data?.length,
     memory: memory.data?.stores.reduce((n, st) => n + st.entries.length, 0),
-    skills: skills.data?.length,
+    setup: setup.data?.items.length,
   }
   const tabs = <ViewTabs views={viewsFor(features.data)} view={viewMeta} count={counts[view]} onChange={selectView} />
   const column = { project, view: viewMeta, tabs, selectedId: item, onSelect: selectItem, onRefresh: () => setViewReload((n) => n + 1) }
@@ -162,15 +165,15 @@ function Browser({ user, onLogout }) {
       ) : view === "memory" ? (
         <MemoryList {...column} memory={memory.data} loading={memory.loading} error={memory.error} />
       ) : (
-        <SkillList key={projectKey} {...column} skills={skills.data} loading={skills.loading} error={skills.error} />
+        <SetupList key={projectKey} {...column} setup={setup.data} loading={setup.loading} error={setup.error} />
       )}
       <main className="pw-main">
         {view === "cron" ? (
           <CronView taskId={item} runId={runId} onSelectRun={selectRun} />
         ) : view === "memory" ? (
           <MemoryView key={item} store={memory.data?.stores.find((st) => st.id === item)} loading={memory.loading} />
-        ) : view === "skills" ? (
-          <SkillView name={item} projectKey={projectKey} />
+        ) : view === "setup" ? (
+          <SetupView key={item} id={item} projectKey={projectKey} setup={setup.data} onSelect={selectItem} />
         ) : creating ? (
           <NewConversation
             project={project}

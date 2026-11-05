@@ -4,7 +4,7 @@
 //	GET /api/conversations?project=<key>      one project's conversation summaries
 //	GET /api/conversations/{id}               one conversation in full (ETag / 304)
 //
-// and the memory, cron and skills views (extras.go).
+// the memory, cron and setup views (extras.go).
 package api
 
 import (
@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"pi-webui/internal/catalog"
+	"pi-webui/internal/setup"
 )
 
 // Handler serves the catalog, and the views beside it (extras.go).
@@ -22,6 +23,7 @@ type Handler struct {
 	Catalog *catalog.Catalog
 	PiDir   string // ~/.pi
 	Home    string // ~ (for ~/.agents)
+	Setup   *setup.Resolver
 }
 
 // Register adds the routes to mux.

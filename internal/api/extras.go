@@ -13,6 +13,7 @@ import (
 	"pi-webui/internal/launch"
 	"pi-webui/internal/memory"
 	"pi-webui/internal/pi"
+	"pi-webui/internal/setup"
 )
 
 // The pi packages the UI has views for, by their npm name.
@@ -28,16 +29,17 @@ const (
 //	GET /api/cron?project=<key>               the agents-cron tasks bound to the project
 //	GET /api/cron/{task}                      one task and its runs, newest first
 //	GET /api/cron/{task}/runs/{run}           one run, its report and its transcript
-//	GET /api/skills?project=<key>             the skills pi loads in the project
-//	GET /api/skills/{name}?project=<key>      one skill and its markdown
+//	GET /api/setup?project=<key>[&refresh=1]  what pi loads in the project: packages, extensions,
+//	                                          skills, prompt templates, themes (internal/setup)
+//	GET /api/setup/{id}?project=<key>         one of them and its markdown (SKILL.md, README)
 func (h *Handler) registerExtras(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/features", h.features)
 	mux.HandleFunc("GET /api/memory", h.memory)
 	mux.HandleFunc("GET /api/cron", h.cronTasks)
 	mux.HandleFunc("GET /api/cron/{task}", h.cronTask)
 	mux.HandleFunc("GET /api/cron/{task}/runs/{run}", h.cronRun)
-	mux.HandleFunc("GET /api/skills", h.skills)
-	mux.HandleFunc("GET /api/skills/{name}", h.skill)
+	mux.HandleFunc("GET /api/setup", h.setup)
+	mux.HandleFunc("GET /api/setup/{id}", h.setupItem)
 }
 
 // Installed reports whether pi's settings list the package (as npm:name[@v],
@@ -152,34 +154,30 @@ func writeCronError(w http.ResponseWriter, err error) {
 	writeError(w, http.StatusInternalServerError, err.Error())
 }
 
-// listSkills: pi's skill folders for the project, then pi-hermes-memory's
-// (the project's, then its global ones).
-func (h *Handler) listSkills(dir string) []launch.Skill {
-	var extra []launch.SkillDir
+// projectSetup: what pi's package manager reports for the project, plus the
+// skills pi-hermes-memory saved (the project's, then its global ones), which
+// the extension hands to pi only while it runs.
+func (h *Handler) projectSetup(r *http.Request) setup.Setup {
+	dir := projectDir(r)
+	s := h.Setup.Resolve(r.Context(), dir, r.URL.Query().Get("refresh") != "")
 	if name := memory.ProjectName(h.PiDir, h.Home, dir); name != "" {
-		extra = append(extra, launch.SkillDir{Dir: filepath.Join(memory.ProjectsRoot(h.PiDir), name, "skills"), Source: "memory"})
+		s.Add(launch.ReadSkills(filepath.Join(memory.ProjectsRoot(h.PiDir), name, "skills"), "project"), "memory", "npm:"+memoryPackage)
 	}
-	extra = append(extra, launch.SkillDir{Dir: filepath.Join(memory.Root(h.PiDir), "skills"), Source: "memory"})
-	return launch.Skills(dir, launch.Dirs{Home: h.Home, Pi: h.PiDir}, extra...)
+	s.Add(launch.ReadSkills(filepath.Join(memory.Root(h.PiDir), "skills"), "user"), "memory", "npm:"+memoryPackage)
+	return s
 }
 
-func (h *Handler) skills(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"skills": h.listSkills(projectDir(r))})
+func (h *Handler) setup(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, h.projectSetup(r))
 }
 
-func (h *Handler) skill(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
-	for _, s := range h.listSkills(projectDir(r)) {
-		if s.Name != name {
-			continue
-		}
-		body, err := launch.SkillBody(s.Path)
-		if err != nil {
-			writeError(w, http.StatusNotFound, "not found")
+func (h *Handler) setupItem(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	for _, it := range h.projectSetup(r).Items {
+		if it.ID == id {
+			writeJSON(w, http.StatusOK, map[string]any{"item": it, "body": setup.Body(it)})
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"skill": s, "body": body})
-		return
 	}
 	writeError(w, http.StatusNotFound, "not found")
 }

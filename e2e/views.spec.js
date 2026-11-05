@@ -18,15 +18,34 @@ test("shows the views of the installed pi packages as icons", async ({ page }) =
   await expect(page.locator('#pwViewTabs [data-view="cron"]')).toHaveText("")
   await expect(page.locator("#pwColumnView")).toHaveText("Sessions")
 
-  await page.locator('#pwViewTabs [data-view="skills"]').click()
-  await expect(page).toHaveURL(/view=skills/)
-  await expect(page.locator("#pwColumnView")).toHaveText("Skills")
-  // pi's user skill and the one pi-hermes-memory saved.
-  await expect(page.locator("#pwSkills [data-skill]")).toHaveCount(2)
-  await page.locator('#pwSkills [data-skill="debug-go-tests"]').click()
-  await expect(page.locator("#pwSkill .pw-view__title")).toHaveText("debug-go-tests")
-  await expect(page.locator("#pwSkill .markdown-body h2")).toHaveText("Procedure")
-  await expect(page.locator("#pwSkill .pw-view__meta")).toContainText("memory")
+  await page.locator('#pwViewTabs [data-view="setup"]').click()
+  await expect(page).toHaveURL(/view=setup/)
+  await expect(page.locator("#pwColumnView")).toHaveText("Setup")
+  // What pi's package manager reports, by kind, plus the skill pi-hermes-memory saved.
+  const setup = page.locator("#pwSetup")
+  await expect(setup.locator(".pw-group__head")).toHaveText(["Packages 3", "Extensions 3", "Skills 3", "Prompts 1"])
+  await expect(setup.locator('[data-kind="package"] [data-item]')).toHaveText([/agents-cron/, /pi-extmgr.*not installed/, /pi-hermes-memory/])
+  await expect(setup.locator('[data-kind="extension"] [data-item]')).toHaveText([/agents-cron/, /mcp.*built-in/, /pi-hermes-memory/])
+  await expect(setup.locator('[data-kind="skill"] [data-item]')).toHaveText([/debug-go-tests.*memory/, /review-code.*user/, /scheduler.*agents-cron/])
+  await expect(setup.locator('[data-kind="prompt"] [data-item]')).toHaveText([/commit/])
+
+  await setup.locator('[data-item="skill:debug-go-tests"]').click()
+  const view = page.locator("#pwSetupItem")
+  await expect(view.locator(".pw-view__title")).toHaveText("debug-go-tests")
+  await expect(view.locator(".markdown-body h2")).toHaveText("Procedure")
+  await expect(view.locator(".pw-view__meta")).toContainText("/skill:debug-go-tests")
+
+  // A package's skill links to the package, which lists what it ships and its README.
+  await setup.locator('[data-item="skill:scheduler"]').click()
+  await expect(view.locator(".markdown-body h2")).toHaveText("Schedule")
+  await view.locator('.pw-doc__note [data-item="package:agents-cron"]').click()
+  await expect(page).toHaveURL(/item=package%3Aagents-cron/)
+  await expect(view.locator(".pw-view__meta")).toContainText("v0.16.1")
+  await expect(view.locator("#pwSetupShips li")).toHaveText([/Extension\s+agents-cron/, /Skill\s+scheduler/])
+  await expect(view.locator(".markdown-body h1")).toHaveText("agents-cron")
+
+  await page.getByLabel("Filter the setup").fill("cron")
+  await expect(setup.locator("[data-item]")).toHaveCount(3)
 
   await page.locator('#pwViewTabs [data-view="sessions"]').click()
   await expect(page).not.toHaveURL(/view=/)

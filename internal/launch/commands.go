@@ -120,9 +120,9 @@ type Skill struct {
 // SkillDir is a folder of <name>/SKILL.md skills.
 type SkillDir struct{ Dir, Source string }
 
-// Skills lists the skills pi loads for a folder (the folders Commands reads)
-// and then the ones in extra, by name; of two with one name the first wins.
-func Skills(cwd string, d Dirs, extra ...SkillDir) []Skill {
+// Skills lists the skills pi loads for a folder (the folders Commands reads),
+// by name; of two with one name the first wins.
+func Skills(cwd string, d Dirs) []Skill {
 	var dirs []SkillDir
 	if cwd != "" {
 		dirs = append(dirs, SkillDir{filepath.Join(cwd, ".pi/skills"), "project"}, SkillDir{filepath.Join(cwd, ".agents/skills"), "project"})
@@ -133,7 +133,7 @@ func Skills(cwd string, d Dirs, extra ...SkillDir) []Skill {
 	}
 	seen := map[string]bool{}
 	out := []Skill{}
-	for _, sd := range append(dirs, extra...) {
+	for _, sd := range dirs {
 		for _, s := range readSkills(sd.Dir, sd.Source) {
 			if !seen[s.Name] {
 				seen[s.Name] = true
@@ -144,6 +144,9 @@ func Skills(cwd string, d Dirs, extra ...SkillDir) []Skill {
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	return out
 }
+
+// ReadSkills lists <dir>/<name>/SKILL.md, for skill folders pi doesn't read itself.
+func ReadSkills(dir, source string) []Skill { return readSkills(dir, source) }
 
 // SkillBody is a skill file's markdown after its frontmatter.
 func SkillBody(path string) (string, error) {

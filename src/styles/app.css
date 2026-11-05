@@ -3199,7 +3199,7 @@ body.is-resizing-shell {
 }
 
 
-/* ---------- cron, memory and skills views (Cron.jsx, Memory.jsx, Skills.jsx) ---------- */
+/* ---------- cron, memory and setup views (Cron.jsx, Memory.jsx, Setup.jsx) ---------- */
 
 .pw-conv.is-disabled .pw-conv__title {
   color: var(--fgColor-muted, #59636e);
@@ -3274,6 +3274,63 @@ body.is-resizing-shell {
 
 .pw-source--memory {
   color: var(--pw-rust);
+}
+
+.pw-source--package {
+  color: var(--fgColor-success, #1a7f37);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* The setup list's kinds: Packages, Extensions, Skills, Prompts, Themes. */
+.pw-group + .pw-group {
+  margin-top: 8px;
+}
+
+.pw-group__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 4px 4px;
+  color: var(--fgColor-muted, #59636e);
+  font-family: var(--pw-sans);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pw-group__count {
+  font-family: var(--pw-mono);
+  font-weight: 400;
+}
+
+.pw-group__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pw-ships {
+  margin: 0 0 16px;
+  padding-left: 0;
+  list-style: none;
+}
+
+.pw-ships li {
+  padding: 2px 0;
+}
+
+.pw-ships__kind {
+  display: inline-block;
+  min-width: 120px;
+  color: var(--fgColor-muted, #59636e);
+  font-size: 12px;
+}
+
+.pw-ships .pw-link-btn,
+.pw-doc__note .pw-link-btn {
+  font-size: 14px;
 }
 
 /* A document in the main column: a task, a run, a memory store, a skill. */

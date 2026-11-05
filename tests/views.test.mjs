@@ -4,10 +4,10 @@ import { filterBy, runStatusMeta, scheduleLabel, viewOf, viewsFor } from "../src
 describe("viewsFor", () => {
   const ids = (f) => viewsFor(f).map((v) => v.id)
   it("shows a package's view only when it is installed", () => {
-    expect(ids({})).toEqual(["sessions", "skills"])
-    expect(ids({ cron: true })).toEqual(["sessions", "cron", "skills"])
-    expect(ids({ cron: true, memory: true })).toEqual(["sessions", "cron", "memory", "skills"])
-    expect(ids(null)).toEqual(["sessions", "skills"])
+    expect(ids({})).toEqual(["sessions", "setup"])
+    expect(ids({ cron: true })).toEqual(["sessions", "cron", "setup"])
+    expect(ids({ cron: true, memory: true })).toEqual(["sessions", "cron", "memory", "setup"])
+    expect(ids(null)).toEqual(["sessions", "setup"])
   })
   it("falls back to the sessions", () => {
     expect(viewOf("memory", { memory: true })).toBe("memory")

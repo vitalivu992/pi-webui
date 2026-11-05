@@ -1,4 +1,4 @@
-// The second column's views and the pure helpers of the cron, memory and skills views.
+// The second column's views and the pure helpers of the cron, memory and setup views.
 
 import { longDateTime } from "./format.js"
 
@@ -7,7 +7,7 @@ export const VIEWS = [
   { id: "sessions", label: "Sessions", icon: "fa-regular fa-comments" },
   { id: "cron", label: "Cron jobs", icon: "fa-regular fa-clock", needs: "cron" },
   { id: "memory", label: "Memory", icon: "fa-solid fa-brain", needs: "memory" },
-  { id: "skills", label: "Skills", icon: "fa-solid fa-wand-magic-sparkles" },
+  { id: "setup", label: "Setup", icon: "fa-solid fa-puzzle-piece" },
 ]
 
 /** The views whose package is installed. */

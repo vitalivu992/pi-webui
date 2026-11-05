@@ -84,7 +84,7 @@ on start also restores this cookie.
   conversation** in the project.
 - **Views** (the icon row under the second column's header, which reads "<project> · <view>";
   the selected view shows its name and count, another project keeps the view): **Sessions**
-  (the conversations above), **Skills**, and — when pi's settings list the package (asked
+  (the conversations above), **Setup**, and — when pi's settings list the package (asked
   once after login) — **Cron jobs** (`agents-cron`) and **Memory** (`pi-hermes-memory`).
   The main column shows what is selected:
   - **Cron jobs**: the project's scheduled tasks (schedule, next run, last outcome); a task
@@ -93,10 +93,16 @@ on start also restores this cookie.
   - **Memory**: the project's memory and failures, then the global memory, user profile,
     failures (each tagged with the project it came from) and standing instructions; each entry
     with its category and dates, filterable.
-  - **Skills**: every skill pi loads in the project (`.pi/skills`, `.agents/skills`,
-    `~/.pi/agent/skills`, `~/.agents/skills`, and the ones pi-hermes-memory saved), with its
-    source; a skill shows its rendered `SKILL.md` and its `/skill:` name (or "not
-    invocable" for `user-invocable: false`).
+  - **Setup**: what pi loads in the project, grouped into **Packages**, **Extensions**,
+    **Skills**, **Prompts** and **Themes**: pi's built-in extensions, its own folders
+    (`~/.pi/agent/…`, `.pi/…`, `.agents/skills`), the paths in its settings, the resources
+    each package ships (`npm:agents-cron` → its extension and its `scheduler` skill) and the
+    skills pi-hermes-memory saved. Each row says where it comes from; disabled ones (`pi
+    config`) and packages that aren't installed yet are greyed. A skill or prompt shows its
+    rendered markdown and what to type (`/skill:name`, `/name`); a package its version,
+    homepage, what it ships and its README; an extension its package's README. pi's own
+    package manager answers (see below); without it only the skills and prompts in pi's
+    folders are listed.
 - **Conversation**: header with the model, start time, session id; **Show work** expands every
   answer's work details (pi's `edit` calls show each replacement as removed and added text);
   **Resume** opens `cd <cwd> && pi --session <id>` with a copy button and **Run in shell**
@@ -173,7 +179,7 @@ The views beside the conversations read (never write):
 | Installed packages | `~/.pi/agent/settings.json` `packages` (`npm:pi-hermes-memory`, `npm:agents-cron`, git or path sources) |
 | Memory | `~/.pi/agent/pi-hermes-memory/{MEMORY,USER,failures,STANDING}.md`; the project's `~/.pi/agent/projects-memory/<name>/{MEMORY,failures}.md` (name: the git repository's folder, as the package picks it). Entries are `§`-separated, with `<!-- created=…, last=…, project64=… -->`. The SQLite index (`sessions.db`) isn't read |
 | Cron jobs | `~/.agents/cron/tasks.json` (tasks bound to the project's folder); `<project>/.agents/cron/runs/<run>.json`, `reports/<task>/<run>.md` and the transcript `sessions/<task>/<run>.jsonl` (or pi's session store) |
-| Skills | `<name>/SKILL.md` in pi's skill folders and pi-hermes-memory's `skills/` (global and the project's) |
+| Setup | what pi's package manager (`DefaultPackageManager.resolve`, imported from pi's own npm package next to the `pi` executable and run with node, offline, nothing installed and no extension run) reports for the project; skills' and prompts' frontmatter and markdown; packages' `package.json` and `README.md`; pi-hermes-memory's `skills/` (global and the project's). Cached 30 s per project; the refresh button asks again |
 
 ## Develop
 

@@ -6,9 +6,11 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"pi-webui/internal/catalog"
+	"pi-webui/internal/setup"
 )
 
 func writeFile(t *testing.T, path, text string) {
@@ -44,11 +46,14 @@ func TestExtras(t *testing.T) {
 	writeFile(t, filepath.Join(piDir, "agent", "settings.json"),
 		`{"packages":["npm:pi-extmgr",{"source":"npm:pi-hermes-memory@0.10.0"}]}`)
 	writeFile(t, filepath.Join(proj, ".pi", "skills", "deploy", "SKILL.md"), "---\nname: deploy\ndescription: Ship it\n---\n\n# Deploy\n")
-	writeFile(t, filepath.Join(piDir, "agent", "pi-hermes-memory", "skills", "debug-ts", "SKILL.md"), "---\nname: debug-ts\nuser-invocable: false\n---\nSteps\n")
+	writeFile(t, filepath.Join(piDir, "agent", "pi-hermes-memory", "skills", "debug-ts", "SKILL.md"), "---\nname: debug-ts\n---\nSteps\n")
+	writeFile(t, filepath.Join(piDir, "agent", "prompts", "review.md"), "---\ndescription: Review it\n---\nReview $1\n")
 	writeFile(t, filepath.Join(piDir, "agent", "projects-memory", "app", "MEMORY.md"), "uses make")
 
 	mux := http.NewServeMux()
-	(&Handler{Catalog: catalog.New(catalog.Config{PiDir: piDir}), PiDir: piDir, Home: home}).Register(mux)
+	// No pi on PATH: the setup is a scan of pi's folders.
+	resolver := &setup.Resolver{PiDir: piDir, Home: home}
+	(&Handler{Catalog: catalog.New(catalog.Config{PiDir: piDir}), PiDir: piDir, Home: home, Setup: resolver}).Register(mux)
 	get := func(url string, v any) int {
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, url, nil))
@@ -67,20 +72,22 @@ func TestExtras(t *testing.T) {
 		t.Errorf("features %v", features)
 	}
 
-	var skills struct {
-		Skills []struct {
-			Name, Source string
-			Invocable    bool
-		}
+	var set setup.Setup
+	get("/api/setup"+q, &set)
+	var ids []string
+	for _, it := range set.Items {
+		ids = append(ids, it.ID+" "+it.Source+" "+it.Scope)
 	}
-	get("/api/skills"+q, &skills)
-	if len(skills.Skills) != 2 || skills.Skills[0].Name != "debug-ts" || skills.Skills[0].Source != "memory" ||
-		skills.Skills[0].Invocable || skills.Skills[1].Source != "project" {
-		t.Errorf("skills %+v", skills.Skills)
+	want := []string{"skill:debug-ts memory user", "skill:deploy auto project", "prompt:review auto user"}
+	if set.Error == "" || !slices.Equal(ids, want) {
+		t.Errorf("setup %q %q", set.Error, ids)
 	}
-	var skill struct{ Body string }
-	if code := get("/api/skills/deploy"+q, &skill); code != http.StatusOK || skill.Body != "# Deploy\n" {
-		t.Errorf("skill %d %q", code, skill.Body)
+	var item struct{ Body string }
+	if code := get("/api/setup/skill:deploy"+q, &item); code != http.StatusOK || item.Body != "# Deploy\n" {
+		t.Errorf("skill %d %q", code, item.Body)
+	}
+	if code := get("/api/setup/prompt:review"+q, &item); code != http.StatusOK || item.Body != "Review $1\n" {
+		t.Errorf("prompt %d %q", code, item.Body)
 	}
 
 	var mem struct {
@@ -96,8 +103,8 @@ func TestExtras(t *testing.T) {
 	}
 
 	for url, want := range map[string]int{
-		"/api/skills/deploy":             http.StatusNotFound, // not without the project
-		"/api/skills/nope" + q:           http.StatusNotFound,
+		"/api/setup/skill:deploy":        http.StatusNotFound, // not without the project
+		"/api/setup/skill:nope" + q:      http.StatusNotFound,
 		"/api/cron" + q:                  http.StatusOK,
 		"/api/cron?project=no-workspace": http.StatusOK,
 		"/api/cron/task_x":               http.StatusNotFound,

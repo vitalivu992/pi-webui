@@ -21,6 +21,7 @@ import (
 	"pi-webui/internal/catalog"
 	"pi-webui/internal/launch"
 	"pi-webui/internal/runs"
+	"pi-webui/internal/setup"
 	"pi-webui/internal/shell"
 	"pi-webui/web"
 )
@@ -71,7 +72,8 @@ func main() {
 
 	mux := http.NewServeMux()
 	login.Register(mux)
-	(&api.Handler{Catalog: cat, PiDir: cfg.PiDir, Home: dirs.Home}).Register(mux)
+	resolver := &setup.Resolver{PiDir: cfg.PiDir, Home: dirs.Home, Find: prompts.Find}
+	(&api.Handler{Catalog: cat, PiDir: cfg.PiDir, Home: dirs.Home, Setup: resolver}).Register(mux)
 	shells.Register(mux)
 	prompts.Register(mux)
 	// The single-page app: bundle files, else index.html for client routes.

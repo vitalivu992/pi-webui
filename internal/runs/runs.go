@@ -456,6 +456,17 @@ func (m *Manager) output(ctx context.Context, argv ...string) ([]byte, error) {
 	return out, nil
 }
 
+// Find looks a CLI up like the runs do: its absolute path and the
+// environment to run it in.
+func (m *Manager) Find(name string) (string, []string, error) {
+	path := m.searchPath()
+	exe, err := lookPath(name, path)
+	if err != nil {
+		return "", nil, err
+	}
+	return exe, withPath(m.Env, path), nil
+}
+
 // searchPath is Path, else the login shell's PATH (asked again every few
 // minutes, so a CLI installed meanwhile is found), else the server's.
 func (m *Manager) searchPath() string {

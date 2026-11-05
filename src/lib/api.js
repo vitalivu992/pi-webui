@@ -127,7 +127,7 @@ export async function stopRun(id) {
 }
 
 // The views beside the conversations (internal/api extras.go): pi-hermes-memory's
-// memory, agents-cron's scheduled tasks, and the skills pi loads.
+// memory, agents-cron's scheduled tasks, and what pi loads (its setup).
 
 /** Which of those pi packages pi has installed: `{ memory, cron }`. */
 export async function fetchFeatures(opts) {
@@ -155,13 +155,18 @@ export async function fetchCronRun(taskId, runId, opts) {
   return getJSON(`/api/cron/${encodeURIComponent(taskId)}/runs/${encodeURIComponent(runId)}`, opts)
 }
 
-export async function fetchSkills(projectKey, opts) {
-  const q = new URLSearchParams({ project: projectKey })
-  return (await getJSON(`/api/skills?${q}`, opts)).skills || []
+/**
+ * `{ pi, error, items: [{ id, kind, name, description, source, scope, package, path, enabled, … }], failures }`:
+ * the packages, extensions, skills, prompts and themes pi loads in the project. `refresh`
+ * skips the server's short cache; `error` says why only pi's folders were scanned.
+ */
+export async function fetchSetup(projectKey, { refresh, ...opts } = {}) {
+  const q = new URLSearchParams({ project: projectKey, ...(refresh ? { refresh: "1" } : {}) })
+  return getJSON(`/api/setup?${q}`, opts)
 }
 
-/** `{ skill, body }`: the SKILL.md's markdown after its frontmatter. */
-export async function fetchSkill(name, projectKey, opts) {
+/** `{ item, body }`: a skill's or prompt's markdown after its frontmatter, a package's README. */
+export async function fetchSetupItem(id, projectKey, opts) {
   const q = new URLSearchParams({ project: projectKey })
-  return getJSON(`/api/skills/${encodeURIComponent(name)}?${q}`, opts)
+  return getJSON(`/api/setup/${encodeURIComponent(id)}?${q}`, opts)
 }
