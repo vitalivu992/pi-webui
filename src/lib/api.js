@@ -171,7 +171,7 @@ export async function fetchSetupItem(id, projectKey, opts) {
   return getJSON(`/api/setup/${encodeURIComponent(id)}?${q}`, opts)
 }
 
-// The right-hand panel: the project's folder and its git status (internal/workspace).
+// The right-hand panel: the project's folder, its files and its git repository (internal/workspace).
 
 /** `{ entries: [{ name, kind: dir|file|link, size? }], truncated }` of one folder ("" = the project's root). */
 export async function fetchFiles(projectKey, path, opts) {
@@ -183,4 +183,25 @@ export async function fetchFiles(projectKey, path, opts) {
 export async function fetchGit(projectKey, opts) {
   const q = new URLSearchParams({ project: projectKey })
   return getJSON(`/api/git?${q}`, opts)
+}
+
+/** `{ path, size, binary, truncated, text, hash }`; `repo` reads the path from the repository's root. */
+export async function fetchFile(projectKey, path, { repo = false, ...opts } = {}) {
+  const q = new URLSearchParams({ project: projectKey, path, ...(repo ? { repo: "1" } : {}) })
+  return getJSON(`/api/file?${q}`, opts)
+}
+
+/** `{ diff, truncated }` of one file of a group (`ref`: `{ path, from, group, status }`). */
+export async function fetchDiff(projectKey, ref, opts) {
+  const q = new URLSearchParams({ project: projectKey, path: ref.path, from: ref.from || "", group: ref.group, status: ref.status || "" })
+  return getJSON(`/api/git/diff?${q}`, opts)
+}
+
+/**
+ * Runs an operation of the Git tab (`{ op, files?, message?, amend?, push?, path?, content?, base? }`):
+ * resolves to `{ result: { ok, steps: [{ cmd, output, exitCode }] }, status }`.
+ */
+export async function gitOp(projectKey, req) {
+  const q = new URLSearchParams({ project: projectKey })
+  return getJSON(`/api/git?${q}`, { method: "POST", body: req })
 }
