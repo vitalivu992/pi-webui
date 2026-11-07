@@ -10,7 +10,7 @@
 :root {
   --pw-projects-w: 272px;
   --pw-rail-w: 56px;
-  --pw-side-w: 300px;
+  --pw-main-min: 360px;
   --pw-convs-w: 360px;
   --pw-radius: 8px;
 
@@ -263,7 +263,8 @@ h6,
 }
 
 .pw-app.has-side {
-  --pw-right-w: var(--pw-side-w);
+  /* The panel (and the viewer beside it) set their own widths: they drag. */
+  --pw-right-w: auto;
 }
 
 .pw-projects,
@@ -1838,69 +1839,69 @@ h6,
   text-align: left;
 }
 
-.markdown-body .hljs-doctag,
-.markdown-body .hljs-keyword,
-.markdown-body .hljs-meta .hljs-keyword,
-.markdown-body .hljs-template-tag,
-.markdown-body .hljs-template-variable,
-.markdown-body .hljs-type,
-.markdown-body .hljs-variable.language_ {
+:is(.markdown-body, .pw-hl) .hljs-doctag,
+:is(.markdown-body, .pw-hl) .hljs-keyword,
+:is(.markdown-body, .pw-hl) .hljs-meta .hljs-keyword,
+:is(.markdown-body, .pw-hl) .hljs-template-tag,
+:is(.markdown-body, .pw-hl) .hljs-template-variable,
+:is(.markdown-body, .pw-hl) .hljs-type,
+:is(.markdown-body, .pw-hl) .hljs-variable.language_ {
   color: var(--pw-hl-keyword);
 }
 
-.markdown-body .hljs-title,
-.markdown-body .hljs-title.class_,
-.markdown-body .hljs-title.function_ {
+:is(.markdown-body, .pw-hl) .hljs-title,
+:is(.markdown-body, .pw-hl) .hljs-title.class_,
+:is(.markdown-body, .pw-hl) .hljs-title.function_ {
   color: var(--pw-hl-title);
 }
 
-.markdown-body .hljs-attr,
-.markdown-body .hljs-attribute,
-.markdown-body .hljs-literal,
-.markdown-body .hljs-meta,
-.markdown-body .hljs-number,
-.markdown-body .hljs-operator,
-.markdown-body .hljs-variable,
-.markdown-body .hljs-selector-attr,
-.markdown-body .hljs-selector-class,
-.markdown-body .hljs-selector-id {
+:is(.markdown-body, .pw-hl) .hljs-attr,
+:is(.markdown-body, .pw-hl) .hljs-attribute,
+:is(.markdown-body, .pw-hl) .hljs-literal,
+:is(.markdown-body, .pw-hl) .hljs-meta,
+:is(.markdown-body, .pw-hl) .hljs-number,
+:is(.markdown-body, .pw-hl) .hljs-operator,
+:is(.markdown-body, .pw-hl) .hljs-variable,
+:is(.markdown-body, .pw-hl) .hljs-selector-attr,
+:is(.markdown-body, .pw-hl) .hljs-selector-class,
+:is(.markdown-body, .pw-hl) .hljs-selector-id {
   color: var(--pw-hl-attr);
 }
 
-.markdown-body .hljs-regexp,
-.markdown-body .hljs-string,
-.markdown-body .hljs-meta .hljs-string {
+:is(.markdown-body, .pw-hl) .hljs-regexp,
+:is(.markdown-body, .pw-hl) .hljs-string,
+:is(.markdown-body, .pw-hl) .hljs-meta .hljs-string {
   color: var(--pw-hl-string);
 }
 
-.markdown-body .hljs-built_in,
-.markdown-body .hljs-symbol {
+:is(.markdown-body, .pw-hl) .hljs-built_in,
+:is(.markdown-body, .pw-hl) .hljs-symbol {
   color: var(--pw-hl-builtin);
 }
 
-.markdown-body .hljs-comment,
-.markdown-body .hljs-code,
-.markdown-body .hljs-formula {
+:is(.markdown-body, .pw-hl) .hljs-comment,
+:is(.markdown-body, .pw-hl) .hljs-code,
+:is(.markdown-body, .pw-hl) .hljs-formula {
   color: var(--pw-hl-comment);
 }
 
-.markdown-body .hljs-name,
-.markdown-body .hljs-quote,
-.markdown-body .hljs-selector-tag,
-.markdown-body .hljs-selector-pseudo {
+:is(.markdown-body, .pw-hl) .hljs-name,
+:is(.markdown-body, .pw-hl) .hljs-quote,
+:is(.markdown-body, .pw-hl) .hljs-selector-tag,
+:is(.markdown-body, .pw-hl) .hljs-selector-pseudo {
   color: var(--pw-hl-name);
 }
 
-.markdown-body .hljs-section {
+:is(.markdown-body, .pw-hl) .hljs-section {
   color: var(--pw-hl-section);
   font-weight: 600;
 }
 
-.markdown-body .hljs-addition {
+:is(.markdown-body, .pw-hl) .hljs-addition {
   background: var(--pw-add-bg);
 }
 
-.markdown-body .hljs-deletion {
+:is(.markdown-body, .pw-hl) .hljs-deletion {
   background: var(--pw-del-bg);
 }
 
@@ -2515,6 +2516,7 @@ body.is-resizing-shell {
 
 .pw-app.has-settings {
   grid-template-columns: var(--pw-left-w) var(--pw-convs-w) minmax(0, 1fr) var(--pw-settings-w) var(--pw-right-w);
+  --pw-mid-w: var(--pw-settings-w);
 }
 
 .pw-visually-hidden {
@@ -3476,7 +3478,6 @@ body.is-resizing-shell {
 
 .pw-side {
   display: flex;
-  flex-direction: column;
   min-width: 0;
   min-height: 0;
   border-left: 1px solid var(--borderColor-default, #d0d7de);
@@ -3484,9 +3485,70 @@ body.is-resizing-shell {
 }
 
 .pw-side--collapsed {
+  flex-direction: column;
+  width: var(--pw-rail-w);
   align-items: center;
   padding: 10px 0 6px;
   gap: 6px;
+}
+
+/* The panel itself, and the viewer to its left; both drag wider from their left edge. */
+.pw-side__pane,
+.pw-side__view {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* The page keeps room for the conversation (--pw-main-min): the panel and the viewer never
+   push it out of the window (--pw-pane-w is the panel's dragged width, set inline). */
+.pw-side {
+  --pw-room: calc(100vw - var(--pw-left-w) - var(--pw-convs-w) - var(--pw-mid-w, 0px) - var(--pw-main-min));
+}
+
+.pw-side__pane {
+  max-width: max(240px, var(--pw-room));
+}
+
+.pw-side__view {
+  max-width: max(240px, calc(var(--pw-room) - var(--pw-pane-w)));
+  border-right: 1px solid var(--borderColor-default, #d0d7de);
+  background: var(--bgColor-default, #fff);
+}
+
+/* Expanded: over the page, up to the panel's left edge. */
+.pw-side__view.is-expanded {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: min(var(--pw-pane-w), max(240px, var(--pw-room)));
+  max-width: none;
+  z-index: 40;
+  box-shadow: var(--shadow-floating-large, 0 8px 24px rgba(140, 149, 159, 0.3));
+}
+
+.pw-side__resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3px;
+  z-index: 2;
+  width: 6px;
+  cursor: col-resize;
+}
+
+.pw-side__resize:hover,
+.is-resizing-side .pw-side__resize {
+  background: var(--pw-control-focus-ring);
+}
+
+body.is-resizing-side {
+  cursor: col-resize;
+  user-select: none;
 }
 
 .pw-side__rail-btn {
@@ -3563,6 +3625,11 @@ button.pw-tree__row {
   background: var(--pw-btn-hover-bg);
 }
 
+.pw-tree__row.is-active {
+  background: var(--pw-active-bg);
+  box-shadow: inset 2px 0 0 var(--pw-active-bar);
+}
+
 .pw-tree__row > i {
   flex: none;
   width: 14px;
@@ -3592,7 +3659,7 @@ button.pw-tree__row {
   font-size: 12px;
 }
 
-/* git status, after VS Code's Source Control */
+/* the Git tab, after VS Code's Source Control */
 
 .pw-git {
   --pw-git-added: var(--pw-success);
@@ -3607,7 +3674,7 @@ button.pw-tree__row {
   align-items: center;
   gap: 6px;
   margin: 0;
-  padding: 4px 12px 8px;
+  padding: 0 8px 6px 12px;
   color: var(--fgColor-muted, #59636e);
   font-family: var(--pw-mono);
   font-size: 12px;
@@ -3620,12 +3687,203 @@ button.pw-tree__row {
   color: var(--fgColor-default, #1f2328);
 }
 
-.pw-git__group-head {
+.pw-git__sync {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.pw-git__bar-actions {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+/* Small icon buttons: the sync actions and the rows' inline actions. */
+.pw-git__act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fgColor-muted, #59636e);
+  font-family: var(--pw-mono);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.pw-git__act:hover:not(:disabled) {
+  background: var(--bgColor-neutral-muted, rgba(175, 184, 193, 0.2));
+  color: var(--fgColor-default, #1f2328);
+}
+
+.pw-git__act:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pw-git__menu {
+  position: relative;
+}
+
+.pw-git__menu-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  min-width: 190px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--pw-control-border);
+  background: var(--overlay-bgColor, var(--bgColor-default, #fff));
+  box-shadow: var(--shadow-floating-large, 0 8px 24px rgba(140, 149, 159, 0.3));
+}
+
+.pw-git__menu-list button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--fgColor-default, #1f2328);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pw-git__menu-list button > i {
+  width: 14px;
+  color: var(--fgColor-muted, #59636e);
+  text-align: center;
+}
+
+.pw-git__menu-list button:hover:not(:disabled) {
+  background: var(--pw-btn-hover-bg);
+}
+
+.pw-git__menu-list button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* A merge or rebase in progress. */
+.pw-git__state {
+  margin: 0 8px 8px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--pw-git-conflict);
+  background: var(--pw-del-bg);
+  font-size: 12px;
+}
+
+.pw-git__state p {
+  margin: 0 0 6px;
+}
+
+.pw-git__state strong {
+  font-family: var(--pw-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pw-git-conflict);
+}
+
+.pw-git__state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pw-git__fail {
+  margin: 0 8px 8px;
+  border: 1px solid var(--fgColor-danger, #d1242f);
+  background: var(--bgColor-default, #fff);
+  font-size: 12px;
+}
+
+.pw-git__fail-head {
   display: flex;
   align-items: center;
   gap: 6px;
-  width: 100%;
-  padding: 4px 12px 4px 8px;
+  padding: 2px 2px 2px 8px;
+  color: var(--fgColor-danger, #d1242f);
+}
+
+.pw-git__fail-head code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--pw-mono);
+  font-size: 11px;
+}
+
+.pw-git__fail pre {
+  max-height: 180px;
+  margin: 0;
+  padding: 6px 8px 8px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--pw-mono);
+  font-size: 11px;
+  color: var(--fgColor-default, #1f2328);
+}
+
+.pw-git__commit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 8px 10px;
+}
+
+.pw-git__msg {
+  height: auto;
+  min-height: 52px;
+  padding: 6px 8px;
+  resize: vertical;
+  font-family: var(--pw-sans);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.pw-git__commit-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pw-git__commit-row #pwCommit {
+  flex: 1;
+  justify-content: center;
+}
+
+.pw-git__group-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px 0 0;
+}
+
+.pw-git__group-toggle {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0 4px 8px;
   border: 0;
   background: transparent;
   color: var(--fgColor-muted, #59636e);
@@ -3633,53 +3891,91 @@ button.pw-tree__row {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  text-align: left;
   cursor: pointer;
 }
 
-.pw-git__group-head:hover {
+.pw-git__group-head:hover .pw-git__group-toggle {
   color: var(--fgColor-default, #1f2328);
 }
 
-.pw-git__group-head > i {
+.pw-git__group-toggle > i {
   width: 10px;
   font-size: 9px;
 }
 
-.pw-git__group-head .pw-count {
-  margin-left: auto;
-}
-
 .pw-git__files {
   list-style: none;
-  margin: 0 0 6px;
+  margin: 0;
   padding: 0;
 }
 
-.pw-git__file {
+.pw-git__group > .pw-git__files {
+  margin-bottom: 6px;
+}
+
+.pw-git__row {
   display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 3px 12px 3px 24px;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding-right: 10px;
   white-space: nowrap;
 }
 
-.pw-git__file:hover {
+.pw-git__row:hover {
   background: var(--pw-btn-hover-bg);
+}
+
+.pw-git__file.is-active > .pw-git__row {
+  background: var(--pw-active-bg);
+  box-shadow: inset 2px 0 0 var(--pw-active-bar);
+}
+
+.pw-git__main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pw-git__folder .pw-git__main {
+  align-items: center;
+}
+
+.pw-git__chev {
+  width: 10px;
+  font-size: 9px;
+  color: var(--fgColor-muted, #59636e);
+}
+
+.pw-git__icon {
+  width: 14px;
+  color: var(--pw-tidal);
+  text-align: center;
 }
 
 .pw-git__name {
   flex: none;
-  max-width: 60%;
+  max-width: 70%;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--pw-git-tone);
+  color: var(--pw-git-tone, var(--fgColor-default, #1f2328));
 }
 
 .pw-git__file.is-gone .pw-git__name {
   text-decoration: line-through;
 }
 
-.pw-git__dir {
+.pw-git__file .pw-git__dir {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -3695,12 +3991,36 @@ button.pw-tree__row {
   font-size: 11px;
 }
 
+/* The inline actions replace the line counts on hover, as in VS Code. */
+.pw-git__actions {
+  display: none;
+  align-items: center;
+}
+
+.pw-git__row:hover > .pw-git__actions,
+.pw-git__row:focus-within > .pw-git__actions,
+.pw-git__group-head:hover > .pw-git__actions,
+.pw-git__group-head:focus-within > .pw-git__actions {
+  display: inline-flex;
+}
+
+.pw-git__row:hover .pw-git__lines,
+.pw-git__row:focus-within .pw-git__lines {
+  display: none;
+}
+
+@media (hover: none) {
+  .pw-git__actions {
+    display: inline-flex;
+  }
+}
+
 .pw-git__add {
-  color: var(--pw-git-added);
+  color: var(--pw-git-added, var(--pw-success));
 }
 
 .pw-git__del {
-  color: var(--pw-git-deleted);
+  color: var(--pw-git-deleted, var(--pw-danger));
 }
 
 .pw-git__bin {
@@ -3710,6 +4030,7 @@ button.pw-tree__row {
 .pw-git__status {
   flex: none;
   width: 12px;
+  line-height: 24px;
   text-align: center;
   font-family: var(--pw-mono);
   font-size: 11px;
@@ -3735,4 +4056,224 @@ button.pw-tree__row {
 
 .pw-git__file.is-conflict {
   --pw-git-tone: var(--pw-git-conflict);
+}
+
+/* ---------- the viewer: a file or a change's diff, left of the workspace panel ---------- */
+
+.pw-viewer {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pw-viewer__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 4px 0 12px;
+  border-bottom: 1px solid var(--borderColor-muted, #d8dee4);
+}
+
+.pw-viewer__head > i {
+  color: var(--fgColor-muted, #59636e);
+}
+
+.pw-viewer__title {
+  display: flex;
+  flex: 1;
+  min-width: 48px;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.pw-viewer__title strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+.pw-viewer__dir {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fgColor-muted, #59636e);
+  font-size: 12px;
+}
+
+.pw-viewer__badge {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 6px;
+  border: 1px solid var(--pw-control-border);
+  font-family: var(--pw-mono);
+  font-size: 10px;
+  line-height: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fgColor-muted, #59636e);
+}
+
+.pw-viewer__badge.is-merge {
+  border-color: var(--pw-rust);
+  color: var(--pw-rust);
+}
+
+.pw-viewer__actions {
+  display: inline-flex;
+  flex: none;
+}
+
+.pw-viewer__resolve {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--borderColor-muted, #d8dee4);
+  background: var(--pw-del-bg);
+}
+
+.pw-viewer__kind {
+  margin-right: auto;
+  color: var(--pw-rust);
+  font-family: var(--pw-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.pw-viewer__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.pw-viewer__stats {
+  margin: 0;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--borderColor-muted, #d8dee4);
+  color: var(--fgColor-muted, #59636e);
+  font-family: var(--pw-mono);
+  font-size: 11px;
+}
+
+.pw-diff {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--pw-mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.pw-diff__no {
+  width: 1%;
+  min-width: 36px;
+  padding: 0 8px;
+  color: var(--fgColor-muted, #59636e);
+  text-align: right;
+  vertical-align: top;
+  user-select: none;
+  opacity: 0.7;
+}
+
+.pw-diff__code {
+  padding: 0 12px 0 4px;
+  white-space: pre;
+  color: var(--fgColor-default, #1f2328);
+}
+
+.pw-diff__mark {
+  display: inline-block;
+  width: 1.2em;
+  color: var(--fgColor-muted, #59636e);
+  user-select: none;
+}
+
+.pw-diff__line.is-add {
+  background: var(--pw-add-bg);
+}
+
+.pw-diff__line.is-del {
+  background: var(--pw-del-bg);
+}
+
+.pw-diff__line.is-hunk,
+.pw-diff__line.is-meta {
+  background: var(--pw-code-bg);
+  color: var(--fgColor-muted, #59636e);
+}
+
+.pw-diff__line.is-hunk .pw-diff__code,
+.pw-diff__line.is-meta .pw-diff__code {
+  color: var(--fgColor-muted, #59636e);
+}
+
+.pw-diff__line.is-marker .pw-diff__code {
+  color: var(--pw-rust);
+  font-weight: 700;
+}
+
+.pw-file .pw-diff__line:hover {
+  background: var(--pw-btn-hover-bg);
+}
+
+/* A conflict block of the resolver: current above incoming, VS Code's code lens on top. */
+.pw-conflict {
+  margin: 4px 0;
+  border-top: 1px solid var(--pw-control-border);
+  border-bottom: 1px solid var(--pw-control-border);
+}
+
+.pw-conflict__bar {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 14px;
+  padding: 2px 12px 2px 52px;
+  background: var(--pw-code-bg);
+}
+
+.pw-conflict__bar .pw-link-btn {
+  white-space: nowrap;
+  font-family: var(--pw-mono);
+  font-size: 11px;
+}
+
+.pw-conflict__bar .pw-link-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pw-conflict__side {
+  border-left: 3px solid transparent;
+}
+
+.pw-conflict__side.is-ours {
+  border-left-color: var(--pw-success);
+  background: var(--pw-add-bg);
+}
+
+.pw-conflict__side.is-base {
+  border-left-color: var(--pw-control-border);
+  background: var(--pw-code-bg);
+}
+
+.pw-conflict__side.is-theirs {
+  border-left-color: var(--pw-blue);
+  background: var(--pw-user-bg);
+}
+
+.pw-conflict__label {
+  display: block;
+  padding: 1px 12px 1px 49px;
+  color: var(--fgColor-muted, #59636e);
+  font-family: var(--pw-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
