@@ -69,7 +69,7 @@ func TestParseStatus(t *testing.T) {
 	got := parseStatus([]byte(out))
 	want := &GitStatus{
 		Repo: true, Branch: "main", Commit: "0123456", Upstream: "origin/main", Ahead: 2, Behind: 1,
-		Merge:   []Change{{Path: "conflict.go", Status: "!"}},
+		Merge:   []Change{{Path: "conflict.go", Status: "!", XY: "UU"}},
 		Staged:  []Change{{Path: "src/app.js", Status: "M"}, {Path: "new name.txt", From: "old name.txt", Status: "R"}},
 		Changes: []Change{{Path: "src/app.js", Status: "M"}, {Path: "gone.txt", Status: "D"}, {Path: "notes/todo.md", Status: "U"}},
 	}

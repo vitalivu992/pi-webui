@@ -25,6 +25,11 @@ type GitStatus struct {
 	Upstream string   `json:"upstream,omitempty"`
 	Ahead    int      `json:"ahead,omitempty"`
 	Behind   int      `json:"behind,omitempty"`
+	Remote   string   `json:"remote,omitempty"` // origin, else the first remote: where a push goes
+	// State is the operation in progress: rebase, merge, cherry-pick, revert, bisect.
+	State string `json:"state,omitempty"`
+	// OpBranch is the branch a rebase works on (HEAD is detached meanwhile).
+	OpBranch string   `json:"opBranch,omitempty"`
 	Merge    []Change `json:"merge"`
 	Staged   []Change `json:"staged"`
 	Changes  []Change `json:"changes"`
@@ -40,6 +45,8 @@ type Change struct {
 	Added   int    `json:"added"`
 	Deleted int    `json:"deleted"`
 	Binary  bool   `json:"binary,omitempty"`
+	// XY is a conflict's two letters (UU, AA, DU, UD, AU, UA, DD): who changed what.
+	XY string `json:"xy,omitempty"`
 }
 
 const (
@@ -54,21 +61,24 @@ const (
 func Status(ctx context.Context, dir string) (*GitStatus, error) {
 	ctx, cancel := context.WithTimeout(ctx, gitTimeout)
 	defer cancel()
-	top, err := git(ctx, dir, "rev-parse", "--show-toplevel")
+	root, gitDir, err := repoDirs(ctx, dir)
+	if errors.Is(err, ErrNotRepo) {
+		return &GitStatus{Merge: []Change{}, Staged: []Change{}, Changes: []Change{}}, nil
+	}
 	if err != nil {
-		var ge *gitError
-		if errors.As(err, &ge) && strings.Contains(ge.stderr, "not a git repository") {
-			return &GitStatus{Merge: []Change{}, Staged: []Change{}, Changes: []Change{}}, nil
-		}
 		return nil, err
 	}
-	root := strings.TrimRight(string(top), "\r\n")
 	out, err := git(ctx, root, "status", "--porcelain=v2", "-z", "--branch", "--untracked-files=all")
 	if err != nil {
 		return nil, err
 	}
 	st := parseStatus(out)
 	st.Root = root
+	st.State = operation(gitDir)
+	if st.State == "rebase" {
+		st.OpBranch = rebaseBranch(gitDir)
+	}
+	st.Remote = remote(ctx, root)
 	staged, err := git(ctx, root, "diff", "--cached", "--numstat", "-z", "--no-ext-diff")
 	if err != nil {
 		return nil, err
@@ -81,6 +91,84 @@ func Status(ctx context.Context, dir string) (*GitStatus, error) {
 	applyNumstat(st.Changes, parseNumstat(unstaged))
 	countUntracked(root, st.Changes)
 	return st, nil
+}
+
+// ErrNotRepo: the folder is not inside a git repository.
+var ErrNotRepo = errors.New("not a git repository")
+
+// repoDirs is the repository's top folder and its (per-worktree) git dir.
+func repoDirs(ctx context.Context, dir string) (root, gitDir string, err error) {
+	out, err := git(ctx, dir, "rev-parse", "--show-toplevel", "--absolute-git-dir")
+	if err != nil {
+		var ge *gitError
+		if errors.As(err, &ge) && strings.Contains(ge.stderr, "not a git repository") {
+			return "", "", ErrNotRepo
+		}
+		return "", "", err
+	}
+	lines := strings.Split(strings.TrimRight(string(out), "\r\n"), "\n")
+	if len(lines) != 2 {
+		// A bare repository has no top folder.
+		return "", "", ErrNotRepo
+	}
+	return strings.TrimRight(lines[0], "\r"), strings.TrimRight(lines[1], "\r"), nil
+}
+
+// RepoRoot is the top folder of the repository dir is in (ErrNotRepo outside one).
+func RepoRoot(ctx context.Context, dir string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, gitTimeout)
+	defer cancel()
+	root, _, err := repoDirs(ctx, dir)
+	return root, err
+}
+
+// operation is what is in progress in a git dir, from git's marker files.
+func operation(gitDir string) string {
+	exists := func(name string) bool {
+		_, err := os.Stat(filepath.Join(gitDir, name))
+		return err == nil
+	}
+	switch {
+	case exists("rebase-merge"), exists("rebase-apply"):
+		return "rebase"
+	case exists("MERGE_HEAD"):
+		return "merge"
+	case exists("CHERRY_PICK_HEAD"):
+		return "cherry-pick"
+	case exists("REVERT_HEAD"):
+		return "revert"
+	case exists("BISECT_LOG"):
+		return "bisect"
+	}
+	return ""
+}
+
+// rebaseBranch is the branch a rebase in progress works on.
+func rebaseBranch(gitDir string) string {
+	for _, d := range []string{"rebase-merge", "rebase-apply"} {
+		if b, err := os.ReadFile(filepath.Join(gitDir, d, "head-name")); err == nil {
+			return strings.TrimPrefix(strings.TrimSpace(string(b)), "refs/heads/")
+		}
+	}
+	return ""
+}
+
+// remote is "origin", else the first remote configured; "" without one.
+func remote(ctx context.Context, root string) string {
+	out, err := git(ctx, root, "remote")
+	if err != nil {
+		return ""
+	}
+	names := strings.Fields(string(out))
+	for _, n := range names {
+		if n == "origin" {
+			return n
+		}
+	}
+	if len(names) > 0 {
+		return names[0]
+	}
+	return ""
 }
 
 type gitError struct {
@@ -144,7 +232,7 @@ func parseStatus(out []byte) *GitStatus {
 		case 'u':
 			f := strings.SplitN(line, " ", 11)
 			if len(f) == 11 {
-				st.Merge = append(st.Merge, Change{Path: f[10], Status: "!"})
+				st.Merge = append(st.Merge, Change{Path: f[10], Status: "!", XY: f[1]})
 			}
 		case '?':
 			if len(line) > 2 {
