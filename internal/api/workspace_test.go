@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"pi-webui/internal/catalog"
@@ -56,5 +57,27 @@ func TestWorkspaceRoutes(t *testing.T) {
 	}
 	if rec := get("/api/git", url.Values{"project": {other}}); rec.Code != http.StatusNotFound {
 		t.Errorf("git of an unlisted folder = %d, want 404", rec.Code)
+	}
+
+	if rec := get("/api/file", url.Values{"project": {project}, "path": {"README.md"}}); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"text":"hi\n"`) {
+		t.Errorf("file = %d %s", rec.Code, rec.Body)
+	}
+	if rec := get("/api/file", url.Values{"project": {project}, "path": {"../x"}}); rec.Code != http.StatusNotFound {
+		t.Errorf("file out of the project = %d, want 404", rec.Code)
+	}
+
+	post := func(q url.Values, ctype, body string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "/api/git?"+q.Encode(), strings.NewReader(body))
+		req.Header.Set("Content-Type", ctype)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		return rec
+	}
+	// A form post (what another site could send) is refused before git runs.
+	if rec := post(url.Values{"project": {project}}, "application/x-www-form-urlencoded", "op=fetch"); rec.Code != http.StatusUnsupportedMediaType {
+		t.Errorf("form post = %d, want 415", rec.Code)
+	}
+	if rec := post(url.Values{"project": {other}}, "application/json", `{"op":"fetch"}`); rec.Code != http.StatusNotFound {
+		t.Errorf("post to an unlisted folder = %d, want 404", rec.Code)
 	}
 }
