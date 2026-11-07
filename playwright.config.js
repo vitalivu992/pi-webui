@@ -14,7 +14,7 @@ export default defineConfig({
   fullyParallel: true,
   use: { baseURL, trace: "retain-on-failure" },
   projects: [
-    { name: "chromium", testIgnore: /(shell|live|prompts)\.spec\.js/, use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
+    { name: "chromium", testIgnore: /(shell|live|prompts|git)\.spec\.js/, use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
     // The live spec adds a project with the newest transcript: it runs after the specs that expect demo_app first.
     {
       name: "live",
@@ -29,11 +29,18 @@ export default defineConfig({
       dependencies: ["live"],
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
     },
+    // The Git tab's changes run in a repository of their own, also the newest project while they run (removed afterwards).
+    {
+      name: "git",
+      testMatch: /git\.spec\.js/,
+      dependencies: ["prompts"],
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
+    },
     // Logging out (auth.spec) ends every shell, and the live project would be listed first: the shell specs run last.
     {
       name: "shells",
       testMatch: /shell\.spec\.js/,
-      dependencies: ["prompts"],
+      dependencies: ["git"],
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
     },
   ],

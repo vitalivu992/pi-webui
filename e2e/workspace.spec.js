@@ -38,7 +38,7 @@ test("the workspace panel shows the project's files and git status", async ({ pa
   await expect(row("changes", "todo.md").locator(".pw-git__lines")).toHaveText("+2")
 
   // Collapsing a group hides its files; the panel's state survives a reload.
-  await git.locator('[data-group="staged"] .pw-git__group-head').click()
+  await git.locator('[data-group="staged"] .pw-git__group-toggle').click()
   await expect(git.locator('[data-group="staged"] [data-path]')).toHaveCount(0)
   await page.reload()
   await expect(page.locator("#pwGit .pw-git__head")).toHaveText("main")
