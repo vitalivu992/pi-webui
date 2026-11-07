@@ -105,11 +105,32 @@ on start also restores this cookie.
     folders are listed.
 - **Workspace** (right, collapsed by default to a rail of two icons; the git icon counts the
   changed files): **Files** is the project's folder as a tree (folders open on click; `.git`
-  hidden, symlinks listed but not followed); **Git** is the repository's branch (↑ahead ↓behind
-  its upstream) and its files in VS Code's groups, **Merge changes**, **Staged changes** and
-  **Changes**, each with its letter (U untracked, A added, M modified, D deleted, R renamed,
-  C copied, T type changed, ! conflict) and the lines it adds and removes (`+12 −3`; an
-  untracked file's lines all count as added). Refreshed every 4 s while the Git tab is open.
+  hidden, symlinks listed but not followed; a click on a file opens it). **Git** works like VS
+  Code's Source Control:
+  - the branch, its upstream and **Pull** (↓behind) / **Push** (↑ahead; a branch without
+    upstream is published) buttons, and a `…` menu with Fetch, Pull, Pull (rebase), Push and
+    the tree / list view;
+  - the commit box: a message and **Commit** (Ctrl+Enter, the staged files), with
+    **Commit & Push** and **Commit (Amend)** (no message: keep the last one) in its `…` menu;
+  - the files in VS Code's groups, **Merge changes**, **Staged changes** and **Changes**, as a
+    tree of folders or a list, each with its letter (U untracked, A added, M modified,
+    D deleted, R renamed, C copied, T type changed, ! conflict) and the lines it adds and
+    removes (`+12 −3`; an untracked file's lines all count as added);
+  - on hover over a file, a folder or a group: **Open file**, **Stage**, **Unstage**,
+    **Discard** (back to the staged version; an untracked file is deleted; asks first) and,
+    in Merge changes, **Mark resolved**;
+  - a merge, rebase, cherry-pick or revert in progress shows a banner with **Continue**
+    (once no conflict is left), **Skip** (rebase, cherry-pick) and **Abort** (asks first);
+  - a failed command shows its output until dismissed.
+
+  Refreshed every 4 s while the Git tab or a diff is open, and after each action.
+- **Viewer** (left of the workspace panel, opened by a click on a file): a change's diff, with
+  a button to see the whole file instead; a file of the tree with line numbers and colours.
+  Its left edge (and the panel's) drags wider; ⤢ expands it over the page; × or Esc closes it.
+  A conflicted file opens as the file: each conflict block has **Accept current**,
+  **Accept incoming** and **Accept both** (the file is saved, unless it changed on disk
+  meanwhile); the bar on top has **Take mine** / **Take theirs** for the whole file,
+  **Delete file** / **Keep file** for a delete/modify conflict, and **Mark resolved**.
 - **Conversation**: header with the model, start time, session id; **Show work** expands every
   answer's work details (pi's `edit` calls show each replacement as removed and added text);
   **Resume** opens `cd <cwd> && pi --session <id>` with a copy button and **Run in shell**
@@ -179,7 +200,7 @@ The new conversation's id is made by the server, so the page opens it as soon as
 pi sessions are trees (rewinds and forks branch them): the branch ending at the last entry is
 shown. Sessions with no prompt are left out.
 
-The views beside the conversations read (never write):
+The views beside the conversations read (only the Git tab writes, see below):
 
 | | |
 |---|---|
@@ -187,8 +208,30 @@ The views beside the conversations read (never write):
 | Memory | `~/.pi/agent/pi-hermes-memory/{MEMORY,USER,failures,STANDING}.md`; the project's `~/.pi/agent/projects-memory/<name>/{MEMORY,failures}.md` (name: the git repository's folder, as the package picks it). Entries are `§`-separated, with `<!-- created=…, last=…, project64=… -->`. The SQLite index (`sessions.db`) isn't read |
 | Cron jobs | `~/.agents/cron/tasks.json` (tasks bound to the project's folder); `<project>/.agents/cron/runs/<run>.json`, `reports/<task>/<run>.md` and the transcript `sessions/<task>/<run>.jsonl` (or pi's session store) |
 | Setup | what pi's package manager (`DefaultPackageManager.resolve`, imported from pi's own npm package next to the `pi` executable and run with node, offline, nothing installed and no extension run) reports for the project; skills' and prompts' frontmatter and markdown; packages' `package.json` and `README.md`; pi-hermes-memory's `skills/` (global and the project's). Cached 30 s per project; the refresh button asks again |
-| Files | one folder of the project at a time (only listed projects' folders) |
-| Git | `git status --porcelain=v2` and `git diff [--cached] --numstat` in the project's repository, run with `--no-optional-locks` so it never takes the index lock |
+| Files | one folder of the project at a time, and one file (up to 2 MB; binary files aren't shown), only in listed projects' folders |
+| Git | `git status --porcelain=v2`, `git diff [--cached] --numstat` and one file's `git diff` in the project's repository, run with `--no-optional-locks` so they never take the index lock |
+
+The Git tab and the conflict resolver change the repository with these commands (in its root,
+paths after `--literal-pathspecs … --`, one action at a time per repository):
+
+| Action | Command |
+|---|---|
+| Stage / Mark resolved | `git add -A -- <files>` |
+| Unstage | `git reset -q -- <files>` (a rename's old path too) |
+| Discard | `git restore -- <files>`; untracked: `git clean -f -q -- <files>` |
+| Take mine / theirs | `git checkout --ours\|--theirs -- <file>`, then `git add` ("mine" is HEAD in a merge, your commit in a rebase, your stash in a stash apply) |
+| Delete file (a conflict) | `git rm -q --ignore-unmatch -- <file>` |
+| Accept current / incoming / both | writes the file with that block replaced (refused when the file changed since it was shown) |
+| Commit | `git commit -m <message>` [`--amend`; `--amend --no-edit` without a message], then `git push` for Commit & Push |
+| Fetch / Pull / Pull (rebase) | `git fetch --all --prune` / `git pull` / `git pull --rebase` |
+| Push | `git push`; without an upstream `git push --set-upstream <origin or the first remote> <branch>` |
+| Continue / Skip / Abort | `git <merge\|rebase\|cherry-pick\|revert> --continue\|--skip\|--abort` |
+
+Git runs without a terminal: no credential or ssh prompts (`GIT_TERMINAL_PROMPT=0`, ssh
+`BatchMode` unless `GIT_SSH_COMMAND` is set), and `GIT_EDITOR=true`, so continuing a merge or
+rebase keeps git's message. A push or pull that needs a password fails instead of waiting;
+credential helpers and ssh agents work. The changes are `POST /api/git` with a JSON body, behind
+the login, so another site can't send them.
 
 ## Develop
 

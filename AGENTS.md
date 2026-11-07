@@ -31,7 +31,7 @@ harness dimension (no harness ids in URLs or the API, no per-harness settings). 
 
 ## Architecture
 
-Read-only Go server + React SPA, one binary, plus the terminal panel's shells (`internal/shell`)
+Read-only Go server + React SPA, one binary, plus the terminal panel's shells (`internal/shell`), the Git tab's changes (`internal/workspace` ops.go)
 and the prompt runs (`internal/runs`), which start `pi -p` headless. No database: session files
 are read on request and summaries cached in memory by file size + mtime.
 
@@ -122,14 +122,30 @@ are read on request and summaries cached in memory by file size + mtime.
   extensions add at run time (`resources_discover`) aren't seen, except pi-hermes-memory's,
   read from its folders (`Setup.Add`). The e2e `bin/` doubles as a fake pi package
   (`FAKE_PI_API`) with node linked where pi's installer keeps it.
-- `internal/api/workspace.go` + `internal/workspace` — the right-hand panel, read-only, only for
+- `internal/api/workspace.go` + `internal/workspace` — the right-hand panel, only for
   a listed project whose folder exists (else 404): `GET /api/files?project=&path=` (one folder
   through `os.OpenRoot`, so neither `..` nor a symlink leaves the project; dirs first, `.git`
-  hidden, symlinks are `link` and not expandable, `MaxEntries` cap) and `GET /api/git?project=`
-  (`rev-parse --show-toplevel`, `status --porcelain=v2 -z --branch --untracked-files=all`,
-  `diff [--cached] --numstat -z`; `--no-optional-locks`, 10 s timeout; paths from the repo
-  root; groups merge/staged/changes with VS Code's letters, untracked files' lines counted up
-  to 500 files of ≤1 MB; outside a repo `repo: false`).
+  hidden, symlinks are `link` and not expandable, `MaxEntries` cap), `GET /api/file?project=&path=[&repo=1]`
+  (`ReadFile`: os.Root, `MaxFileBytes` 2 MB, NUL in the first 8 KB = binary, `hash` = sha256;
+  repo=1: the path is from the repository's root, as the Git tab's paths are) and
+  `GET /api/git?project=` (`repoDirs`: `rev-parse --show-toplevel --absolute-git-dir`;
+  `status --porcelain=v2 -z --branch --untracked-files=all`, `diff [--cached] --numstat -z`;
+  `--no-optional-locks`, 10 s timeout; paths from the repo root; groups merge/staged/changes
+  with VS Code's letters, a conflict's `xy`; untracked files' lines counted up to 500 files of
+  ≤1 MB; `state` from the git dir's marker files (rebase-merge/-apply, MERGE_HEAD,
+  CHERRY_PICK_HEAD, REVERT_HEAD, BISECT_LOG), `opBranch`, `remote` (origin first); outside a
+  repo `repo: false`). `GET /api/git/diff?project=&path=&from=&group=&status=` (`Diff`:
+  `--cached [from] path` / plain / `--no-index /dev/null` for untracked (exit 1 = differs) /
+  the combined diff of a conflict; `MaxOutput` 4 MB). `POST /api/git?project=` (JSON only →
+  415 otherwise; `Apply`, then the new status): `ops.go` runs one operation at a time per
+  repository root (`TryLock` → `ErrBusy` 409), 2 min timeout, env without prompts
+  (`writeEnv`: `GIT_TERMINAL_PROMPT=0`, `GIT_EDITOR=true`, ssh BatchMode). File ops take
+  `{path, from, group, status}` refs, checked per op (discard only in changes, ours/theirs/remove
+  only in merge; `validRel`), and run `--literal-pathspecs <cmd> -- <200 paths>`; untracked
+  discards are `clean -f`. `write` replaces a file only when its sha256 is still `base`
+  (`ErrChanged` 409). A failed git command is `result.ok: false` with its steps (200);
+  `InvalidError` is 400. Tests: `ops_test.go` drives real temp repos (merge conflicts, a bare
+  remote for push).
 - `web/` — `go:embed` of `web/dist` + SPA fallback handler (404s unknown `/api/*` and `/health`).
 
 ### Frontend (`src/`)
@@ -165,7 +181,7 @@ are read on request and summaries cached in memory by file size + mtime.
   while the page is hidden). `isWorking` = active + last turn `incomplete`: `ConversationView`
   then shows the work, marks the last turn with a `WorkingWord` and keeps the chat at the bottom if it was
   there; when it flips back the work collapses. `e2e/live.spec.js` appends to a session file
-  mid-test, in its own Playwright project (chromium → live → prompts → shells) because it adds the newest project.
+  mid-test, in its own Playwright project (chromium → live → prompts → git → shells) because it adds the newest project.
 - Prompts: `components/Runs.jsx` `RunsProvider` (`/api/runs`, polled 1.5 s while one runs;
   `start` remembers the conversation's turn count, so `ConversationView` shows the prompt as
   sent until the session file has more turns; `runFor(session)`). `useLiveConversation(…,
@@ -181,12 +197,28 @@ are read on request and summaries cached in memory by file size + mtime.
   `storage`); pi info, commands and models via `hooks/usePiData.js` (cached per page).
   `e2e/prompts.spec.js` has its own Playwright project and project folder, removed afterwards.
 - `components/WorkspacePanel.jsx` — the last grid column (`.pw-app` columns are the
-  `--pw-left-w` / `--pw-right-w` variables; `has-side` widens the right one, settings sit
-  between the conversation and it): collapsed (pref `workspaceCollapsed`, default) a rail of
-  the Files / Git icons with the changed-file count; open, the tab (pref `workspaceTab`) is a
-  lazy file tree (`Folder` fetches on open; reload refetches the open ones) or the git groups
-  (polled 4 s while shown, else 15 s for the badge). `lib/workspace.js` holds the pure helpers.
-  `e2e/workspace.spec.js` runs over `makeRepo` (the demo project as a git repo).
+  `--pw-left-w` / `--pw-right-w` variables; `has-side` makes the right one `auto`: the aside
+  sizes to the panel's and the viewer's inline widths, dragged from their left edges, prefs
+  `workspaceWidth` / `viewerWidth`; CSS `max-width` from `--pw-room` keeps `--pw-main-min`
+  for the conversation; settings sit between the conversation and it): collapsed (pref
+  `workspaceCollapsed`, default) a rail of the Files / Git icons with the changed-file count;
+  open, the tab (pref `workspaceTab`) is a lazy file tree (`Folder` fetches on open; reload
+  refetches the open ones) or `GitPanel`. It owns `run(req, ask)` (confirm dialog from
+  `ConfirmDialog.jsx` `useConfirm`, one operation at a time = `busy`, the failed steps =
+  `failure`, then a status reload) and the viewer target (`{kind: "change", group, change}` or
+  `{kind: "file", path, repo}`); after each status load `findChange` moves an open change to
+  its new group or closes it. Git is polled 4 s while the tab or a change is shown, else 15 s.
+  Esc closes the viewer (first leaves expanded); the `…` menus catch their Esc first.
+  `GitPanel.jsx`: branch bar (pull / push / `Menu`), `OperationBanner`, `Failure`,
+  `CommitBox`, groups as a tree (`buildTree`, compacted folders) or list (pref `gitMode`),
+  `RowActions` shown on hover (they replace the line counts). `Viewer.jsx`: diff (`parseDiff`,
+  per-line hljs) or file (`Lines`: whole-file hljs split per line by `splitHighlighted`, up to
+  300 KB); a merge-group file opens as the file with `ConflictFile` (`parseConflicts` /
+  `resolveConflict`, a `write` with the file's hash) and `ConflictBar` (`conflictSides`).
+  hljs colours are scoped `:is(.markdown-body, .pw-hl)` (`.pw-code` is the steps' class).
+  `lib/workspace.js` and `lib/git.js` hold the pure helpers. `e2e/workspace.spec.js` reads
+  `makeRepo` (the demo project as a git repo); `e2e/git.spec.js` (own Playwright project
+  `git`, before `shells`) changes a repo of its own, `git_app`, with a bare remote.
 - `components/Shells.jsx` — `ShellProvider` (shell list restored from `/api/shells`, active tab,
   open/minimized; `useShells().openShell({cwd, run})` from the project rows and the Resume
   popover) and `ShellPanel` (tab bar = status bar, drag-to-resize, height in prefs).
